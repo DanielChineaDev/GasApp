@@ -1,18 +1,23 @@
 package com.bpo.gasapp.data.repository
 
 import com.bpo.gasapp.data.local.FavoriteDao
+import com.bpo.gasapp.data.local.PriceHistoryDao
 import com.bpo.gasapp.data.local.StationDao
 import com.bpo.gasapp.data.local.entity.FavoriteEntity
+import com.bpo.gasapp.data.local.entity.PriceHistoryEntity
 import com.bpo.gasapp.data.mapper.toDomain
 import com.bpo.gasapp.data.mapper.toEntity
 import com.bpo.gasapp.data.remote.FavoritesRemoteDataSource
 import com.bpo.gasapp.data.remote.FuelApi
+import com.bpo.gasapp.domain.model.FuelType
 import com.bpo.gasapp.domain.model.PriceDrop
+import com.bpo.gasapp.domain.model.PricePoint
 import com.bpo.gasapp.domain.model.Station
 import com.bpo.gasapp.domain.repository.StationRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -21,6 +26,7 @@ class StationRepositoryImpl @Inject constructor(
     private val api: FuelApi,
     private val stationDao: StationDao,
     private val favoriteDao: FavoriteDao,
+    private val priceHistoryDao: PriceHistoryDao,
     private val favoritesRemote: FavoritesRemoteDataSource
 ) : StationRepository {
 
@@ -55,18 +61,30 @@ class StationRepositoryImpl @Inject constructor(
         stationDao.replaceAll(entities)
 
         val drops = mutableListOf<PriceDrop>()
+        val historyEntries = mutableListOf<PriceHistoryEntity>()
         favoriteIds.forEach { id ->
-            val old = oldFavorites[id] ?: return@forEach
             val updated = stationDao.getById(id)?.toDomain() ?: return@forEach
             updated.prices.forEach { (fuel, newPrice) ->
-                val oldPrice = old.priceOf(fuel)
+                historyEntries += PriceHistoryEntity(id, fuel.name, newPrice, now)
+                val oldPrice = oldFavorites[id]?.priceOf(fuel)
                 if (oldPrice != null && newPrice < oldPrice) {
                     drops += PriceDrop(id, updated.name, fuel, oldPrice, newPrice)
                 }
             }
         }
+        if (historyEntries.isNotEmpty()) priceHistoryDao.insertAll(historyEntries)
+        priceHistoryDao.pruneOlderThan(now - HISTORY_RETENTION_MS)
         drops
     }
+
+    override fun observePriceHistory(stationId: String): Flow<List<PricePoint>> =
+        priceHistoryDao.observeForStation(stationId).map { entries ->
+            entries.mapNotNull { entry ->
+                runCatching { FuelType.valueOf(entry.fuel) }.getOrNull()?.let { fuel ->
+                    PricePoint(fuel, entry.price, entry.timestamp)
+                }
+            }
+        }
 
     override suspend fun toggleFavorite(stationId: String) {
         if (favoriteDao.isFavorite(stationId)) {
@@ -76,6 +94,10 @@ class StationRepositoryImpl @Inject constructor(
             favoriteDao.add(FavoriteEntity(stationId))
             favoritesRemote.add(stationId)
         }
+    }
+
+    private companion object {
+        const val HISTORY_RETENTION_MS = 90L * 24 * 60 * 60 * 1000
     }
 
     override suspend fun syncFavorites() {

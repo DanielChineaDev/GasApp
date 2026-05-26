@@ -46,6 +46,7 @@ fun StationDetailScreen(
     viewModel: StationDetailViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val history by viewModel.history.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
     Scaffold(
@@ -81,6 +82,7 @@ fun StationDetailScreen(
                     )
                 else -> StationDetailContent(
                     station = state.station!!,
+                    history = history,
                     onNavigate = { launchNavigation(context, state.station!!) }
                 )
             }
@@ -89,7 +91,11 @@ fun StationDetailScreen(
 }
 
 @Composable
-private fun StationDetailContent(station: Station, onNavigate: () -> Unit) {
+private fun StationDetailContent(
+    station: Station,
+    history: List<com.bpo.gasapp.domain.model.PricePoint>,
+    onNavigate: () -> Unit
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -114,6 +120,13 @@ private fun StationDetailContent(station: Station, onNavigate: () -> Unit) {
                     PriceRow(fuel, station.priceOf(fuel))
                     if (fuel != FuelType.entries.last()) HorizontalDivider()
                 }
+            }
+        }
+
+        Card(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Historial de precios", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                PriceHistoryChart(history)
             }
         }
 

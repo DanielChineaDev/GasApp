@@ -3,12 +3,15 @@ package com.bpo.gasapp.ui.detail
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.bpo.gasapp.domain.model.PricePoint
 import com.bpo.gasapp.domain.model.Station
 import com.bpo.gasapp.domain.repository.StationRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -28,6 +31,13 @@ class StationDetailViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(StationDetailUiState())
     val uiState: StateFlow<StationDetailUiState> = _uiState.asStateFlow()
+
+    val history: StateFlow<List<PricePoint>> =
+        repository.observePriceHistory(stationId).stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = emptyList()
+        )
 
     init {
         load()

@@ -1,6 +1,7 @@
 package com.bpo.gasapp.domain.repository
 
 import com.bpo.gasapp.domain.model.PriceDrop
+import com.bpo.gasapp.domain.model.PricePoint
 import com.bpo.gasapp.domain.model.Station
 import kotlinx.coroutines.flow.Flow
 
@@ -13,6 +14,9 @@ interface StationRepository {
     fun observeFavorites(): Flow<List<Station>>
 
     suspend fun getStation(id: String): Station?
+
+    /** Recorded price history (favorites only), oldest first. */
+    fun observePriceHistory(stationId: String): Flow<List<PricePoint>>
 
     /** Fetches fresh data from the official API and replaces the local cache. */
     suspend fun refresh(): Result<Unit>
