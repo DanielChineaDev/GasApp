@@ -19,7 +19,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -31,6 +36,7 @@ import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.LatLngBounds
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapProperties
 import com.google.maps.android.compose.MapUiSettings
@@ -40,6 +46,7 @@ import com.google.maps.android.compose.rememberCameraPositionState
 import kotlinx.coroutines.launch
 
 private val SPAIN_CENTER = LatLng(40.0, -3.7)
+private const val MIN_MARKER_ZOOM = 9f
 
 @OptIn(
     ExperimentalPermissionsApi::class,
@@ -76,7 +83,20 @@ fun MapScreen(
         }
     }
 
-    val clusterItems = rememberClusterItems(state)
+    // Track the visible bounds and zoom only when the camera settles, to avoid
+    // rebuilding the marker list on every frame while panning.
+    var visibleBounds by remember { mutableStateOf<LatLngBounds?>(null) }
+    var zoom by remember { mutableFloatStateOf(cameraPositionState.position.zoom) }
+    LaunchedEffect(cameraPositionState) {
+        snapshotFlow { cameraPositionState.isMoving }.collect { moving ->
+            if (!moving) {
+                zoom = cameraPositionState.position.zoom
+                visibleBounds = cameraPositionState.projection?.visibleRegion?.latLngBounds
+            }
+        }
+    }
+
+    val clusterItems = rememberVisibleClusterItems(state, visibleBounds, zoom)
 
     Box(Modifier.fillMaxSize()) {
         GoogleMap(
@@ -92,6 +112,19 @@ fun MapScreen(
                     true
                 }
             )
+        }
+
+        if (zoom < MIN_MARKER_ZOOM) {
+            Surface(
+                modifier = Modifier.align(Alignment.Center).padding(16.dp),
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+                tonalElevation = 3.dp
+            ) {
+                Text(
+                    "Acerca el mapa para ver las gasolineras",
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                )
+            }
         }
 
         Surface(
@@ -138,11 +171,19 @@ fun MapScreen(
 }
 
 @Composable
-private fun rememberClusterItems(state: MapUiState): List<StationClusterItem> =
-    androidx.compose.runtime.remember(state.stations, state.selectedFuel) {
-        state.stations.map { station ->
-            val price = station.priceOf(state.selectedFuel)
-            val snippet = price?.let { "${state.selectedFuel.label}: %.3f €".format(it) }
-            StationClusterItem(station, snippet)
-        }
+private fun rememberVisibleClusterItems(
+    state: MapUiState,
+    bounds: LatLngBounds?,
+    zoom: Float
+): List<StationClusterItem> =
+    androidx.compose.runtime.remember(state.stations, state.selectedFuel, bounds, zoom) {
+        if (zoom < MIN_MARKER_ZOOM) return@remember emptyList()
+        state.stations.asSequence()
+            .filter { bounds == null || bounds.contains(LatLng(it.latitude, it.longitude)) }
+            .map { station ->
+                val price = station.priceOf(state.selectedFuel)
+                val snippet = price?.let { "${state.selectedFuel.label}: %.3f €".format(it) }
+                StationClusterItem(station, snippet)
+            }
+            .toList()
     }
