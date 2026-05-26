@@ -28,6 +28,7 @@ import com.bpo.gasapp.ui.detail.StationDetailRoute
 import com.bpo.gasapp.ui.detail.StationDetailScreen
 import com.bpo.gasapp.ui.favorites.FavoritesScreen
 import com.bpo.gasapp.ui.map.MapScreen
+import com.bpo.gasapp.ui.settings.SettingsScreen
 import com.bpo.gasapp.ui.stations.StationListScreen
 
 object Routes {
@@ -35,6 +36,7 @@ object Routes {
     const val MAP = "map"
     const val FAVORITES = "favorites"
     const val ACCOUNT = "account"
+    const val SETTINGS = "settings"
 }
 
 private enum class TopLevel(val route: String, val label: String, val icon: ImageVector) {
@@ -83,7 +85,8 @@ fun GasNavHost(navController: NavHostController = rememberNavController()) {
             composable(Routes.LIST) {
                 StationListScreen(
                     onStationClick = { id -> navController.navigate(StationDetailRoute.build(id)) },
-                    onAccountClick = { navController.navigate(Routes.ACCOUNT) }
+                    onAccountClick = { navController.navigate(Routes.ACCOUNT) },
+                    onSettingsClick = { navController.navigate(Routes.SETTINGS) }
                 )
             }
             composable(Routes.MAP) {
@@ -98,6 +101,9 @@ fun GasNavHost(navController: NavHostController = rememberNavController()) {
             }
             composable(Routes.ACCOUNT) {
                 AccountScreen(onBack = { navController.popBackStack() })
+            }
+            composable(Routes.SETTINGS) {
+                SettingsScreen(onBack = { navController.popBackStack() })
             }
             composable(
                 route = StationDetailRoute.PATTERN,

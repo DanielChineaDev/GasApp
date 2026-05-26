@@ -3,6 +3,7 @@ package com.bpo.gasapp.ui.stations
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bpo.gasapp.data.location.LocationProvider
+import com.bpo.gasapp.data.settings.SettingsRepository
 import com.bpo.gasapp.domain.model.FuelType
 import com.bpo.gasapp.domain.model.Station
 import com.bpo.gasapp.domain.model.StationFilters
@@ -15,6 +16,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
@@ -33,7 +35,8 @@ data class StationListUiState(
 @HiltViewModel
 class StationListViewModel @Inject constructor(
     private val repository: StationRepository,
-    private val locationProvider: LocationProvider
+    private val locationProvider: LocationProvider,
+    private val settingsRepository: SettingsRepository
 ) : ViewModel() {
 
     private val filters = MutableStateFlow(StationFilters())
@@ -84,6 +87,9 @@ class StationListViewModel @Inject constructor(
         repository.observeStations()
             .onEach { if (it.isEmpty() && !isRefreshing.value) refresh() }
             .launchIn(viewModelScope)
+        viewModelScope.launch {
+            filters.value = filters.value.copy(fuel = settingsRepository.settings.first().defaultFuel)
+        }
         refreshLocation()
     }
 

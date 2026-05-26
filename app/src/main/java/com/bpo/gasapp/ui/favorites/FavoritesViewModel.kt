@@ -2,6 +2,7 @@ package com.bpo.gasapp.ui.favorites
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.bpo.gasapp.data.settings.SettingsRepository
 import com.bpo.gasapp.domain.model.FuelType
 import com.bpo.gasapp.domain.model.Station
 import com.bpo.gasapp.domain.repository.StationRepository
@@ -10,6 +11,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -21,10 +23,15 @@ data class FavoritesUiState(
 
 @HiltViewModel
 class FavoritesViewModel @Inject constructor(
-    private val repository: StationRepository
+    private val repository: StationRepository,
+    private val settingsRepository: SettingsRepository
 ) : ViewModel() {
 
     private val selectedFuel = MutableStateFlow(FuelType.GASOLINA_95)
+
+    init {
+        viewModelScope.launch { selectedFuel.value = settingsRepository.settings.first().defaultFuel }
+    }
 
     val uiState: StateFlow<FavoritesUiState> =
         combine(repository.observeFavorites(), selectedFuel) { favorites, fuel ->

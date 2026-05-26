@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.LocationOff
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -49,6 +50,7 @@ import com.google.accompanist.permissions.rememberMultiplePermissionsState
 fun StationListScreen(
     onStationClick: (String) -> Unit,
     onAccountClick: () -> Unit,
+    onSettingsClick: () -> Unit,
     viewModel: StationListViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -74,6 +76,9 @@ fun StationListScreen(
                     }
                     IconButton(onClick = onAccountClick) {
                         Icon(Icons.Default.AccountCircle, contentDescription = "Cuenta")
+                    }
+                    IconButton(onClick = onSettingsClick) {
+                        Icon(Icons.Default.Settings, contentDescription = "Ajustes")
                     }
                 }
             )
