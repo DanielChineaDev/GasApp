@@ -191,17 +191,7 @@ fun MapScreen(
             },
             onFavorite = { viewModel.toggleFavorite(selected.id) },
             onNavigate = {
-                val uri = android.net.Uri.parse("google.navigation:q=${selected.latitude},${selected.longitude}")
-                val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, uri)
-                    .apply { setPackage("com.google.android.apps.maps") }
-                runCatching { context.startActivity(intent) }.onFailure {
-                    context.startActivity(
-                        android.content.Intent(
-                            android.content.Intent.ACTION_VIEW,
-                            android.net.Uri.parse("geo:${selected.latitude},${selected.longitude}")
-                        )
-                    )
-                }
+                com.bpo.gasapp.ui.components.openNavigation(context, selected.latitude, selected.longitude)
             }
         )
     }

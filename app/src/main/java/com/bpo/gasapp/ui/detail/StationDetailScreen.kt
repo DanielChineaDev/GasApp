@@ -193,17 +193,5 @@ private fun PriceRow(fuel: FuelType, price: Double?) {
 }
 
 private fun launchNavigation(context: android.content.Context, station: Station) {
-    val mapsIntent = Intent(
-        Intent.ACTION_VIEW,
-        Uri.parse("google.navigation:q=${station.latitude},${station.longitude}")
-    ).apply { setPackage("com.google.android.apps.maps") }
-    try {
-        context.startActivity(mapsIntent)
-    } catch (e: android.content.ActivityNotFoundException) {
-        val fallback = Intent(
-            Intent.ACTION_VIEW,
-            Uri.parse("geo:${station.latitude},${station.longitude}?q=${station.latitude},${station.longitude}(${Uri.encode(station.brand)})")
-        )
-        context.startActivity(fallback)
-    }
+    com.bpo.gasapp.ui.components.openNavigation(context, station.latitude, station.longitude)
 }

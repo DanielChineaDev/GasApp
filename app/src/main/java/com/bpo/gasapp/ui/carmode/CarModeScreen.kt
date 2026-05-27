@@ -87,11 +87,7 @@ fun CarModeScreen(
                 }
                 Button(
                     onClick = {
-                        val uri = Uri.parse("google.navigation:q=${station.latitude},${station.longitude}")
-                        val intent = Intent(Intent.ACTION_VIEW, uri).apply { setPackage("com.google.android.apps.maps") }
-                        runCatching { context.startActivity(intent) }.onFailure {
-                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("geo:${station.latitude},${station.longitude}")))
-                        }
+                        com.bpo.gasapp.ui.components.openNavigation(context, station.latitude, station.longitude)
                     },
                     modifier = Modifier.fillMaxWidth().padding(top = 32.dp)
                 ) {
