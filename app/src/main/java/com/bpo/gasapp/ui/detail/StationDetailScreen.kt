@@ -2,13 +2,16 @@ package com.bpo.gasapp.ui.detail
 
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -103,6 +106,7 @@ private fun StationDetailContent(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        StationPhoto(station)
         Column {
             Text(station.brand, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
             if (station.address.isNotBlank()) Text(station.address, style = MaterialTheme.typography.bodyMedium)
@@ -134,6 +138,35 @@ private fun StationDetailContent(
             Icon(Icons.Default.Navigation, contentDescription = null)
             Text("  Ir allí")
         }
+    }
+}
+
+@Composable
+private fun StationPhoto(station: Station) {
+    val url = "https://maps.googleapis.com/maps/api/streetview?size=600x300" +
+        "&location=${station.latitude},${station.longitude}&fov=80&pitch=0" +
+        "&key=${com.bpo.gasapp.BuildConfig.MAPS_API_KEY}"
+
+    androidx.compose.foundation.layout.Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(180.dp)
+            .clip(androidx.compose.foundation.shape.RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.primaryContainer),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = station.brand.take(1).uppercase(),
+            style = MaterialTheme.typography.displayMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onPrimaryContainer
+        )
+        coil.compose.AsyncImage(
+            model = url,
+            contentDescription = "Foto de ${station.brand}",
+            contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+            modifier = Modifier.fillMaxWidth().height(180.dp)
+        )
     }
 }
 
