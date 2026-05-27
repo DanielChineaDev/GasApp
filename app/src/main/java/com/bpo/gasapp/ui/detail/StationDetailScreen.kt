@@ -19,6 +19,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Navigation
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
@@ -62,10 +63,15 @@ fun StationDetailScreen(
                     }
                 },
                 actions = {
-                    if (state.station != null) {
+                    state.station?.let { st ->
+                        IconButton(onClick = {
+                            com.bpo.gasapp.ui.components.shareStation(context, st)
+                        }) {
+                            Icon(Icons.Default.Share, contentDescription = "Compartir")
+                        }
                         IconButton(onClick = viewModel::toggleFavorite) {
                             Icon(
-                                imageVector = if (state.station!!.isFavorite) Icons.Default.Favorite
+                                imageVector = if (st.isFavorite) Icons.Default.Favorite
                                 else Icons.Default.FavoriteBorder,
                                 contentDescription = "Favorito"
                             )

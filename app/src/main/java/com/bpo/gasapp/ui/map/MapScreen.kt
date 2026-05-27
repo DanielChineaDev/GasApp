@@ -14,6 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.MyLocation
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
@@ -238,6 +239,15 @@ private fun StationSheet(
                     Text(
                         station.address.ifBlank { station.city },
                         style = androidx.compose.material3.MaterialTheme.typography.bodySmall
+                    )
+                }
+                val shareContext = androidx.compose.ui.platform.LocalContext.current
+                androidx.compose.material3.IconButton(onClick = {
+                    com.bpo.gasapp.ui.components.shareStation(shareContext, station)
+                }) {
+                    Icon(
+                        androidx.compose.material.icons.Icons.Default.Share,
+                        contentDescription = "Compartir"
                     )
                 }
                 androidx.compose.material3.IconButton(onClick = onFavorite) {
