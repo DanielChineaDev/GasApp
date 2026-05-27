@@ -60,6 +60,7 @@ object Routes {
     const val PLANNER = "planner"
     const val SAVING = "saving"
     const val STATS = "stats"
+    const val CAR = "car"
 }
 
 private enum class TopLevel(val route: String, val label: String, val icon: ImageVector) {
@@ -140,8 +141,12 @@ fun GasNavHost(navController: NavHostController = rememberNavController()) {
                     onStats = { navController.navigate(Routes.STATS) },
                     onPlanner = { navController.navigate(Routes.PLANNER) },
                     onSaving = { navController.navigate(Routes.SAVING) },
+                    onCarMode = { navController.navigate(Routes.CAR) },
                     onSettings = { navController.navigate(Routes.SETTINGS) }
                 )
+            }
+            composable(Routes.CAR) {
+                com.bpo.gasapp.ui.carmode.CarModeScreen(onBack = { navController.popBackStack() })
             }
             composable(Routes.ACCOUNT) {
                 AccountScreen(
