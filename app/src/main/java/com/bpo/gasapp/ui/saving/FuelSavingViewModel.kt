@@ -42,7 +42,8 @@ data class FuelSavingUiState(
 class FuelSavingViewModel @Inject constructor(
     private val repository: StationRepository,
     private val locationProvider: LocationProvider,
-    settingsRepository: SettingsRepository
+    settingsRepository: SettingsRepository,
+    private val vehicleRepository: com.bpo.gasapp.domain.repository.VehicleRepository
 ) : ViewModel() {
 
     private val tankLiters = MutableStateFlow(50)
@@ -51,7 +52,12 @@ class FuelSavingViewModel @Inject constructor(
     private val location = MutableStateFlow<UserLocation?>(null)
 
     init {
-        viewModelScope.launch { selectedFuel.value = settingsRepository.settings.first().defaultFuel }
+        viewModelScope.launch {
+            val settings = settingsRepository.settings.first()
+            val vehicle = settings.selectedVehicleId?.let { vehicleRepository.getById(it) }
+            selectedFuel.value = vehicle?.fuel ?: settings.defaultFuel
+            vehicle?.let { consumption.value = it.consumption }
+        }
         refreshLocation()
     }
 

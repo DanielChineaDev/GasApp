@@ -39,12 +39,14 @@ data class RefuelLogUiState(
 @HiltViewModel
 class RefuelLogViewModel @Inject constructor(
     private val refuelRepository: RefuelRepository,
-    settingsRepository: SettingsRepository,
+    private val settingsRepository: SettingsRepository,
+    private val vehicleRepository: com.bpo.gasapp.domain.repository.VehicleRepository,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
     private val stationId: String? =
         savedStateHandle.get<String>(RefuelLogRoute.ARG_STATION_ID)?.takeIf { it.isNotBlank() }
+    private var vehicleId: Long? = null
 
     private val _uiState = MutableStateFlow(RefuelLogUiState())
     val uiState: StateFlow<RefuelLogUiState> = _uiState.asStateFlow()
@@ -55,7 +57,10 @@ class RefuelLogViewModel @Inject constructor(
             ?.let { runCatching { FuelType.valueOf(it) }.getOrNull() }
         _uiState.value = _uiState.value.copy(stationName = name)
         viewModelScope.launch {
-            val fuel = fuelArg ?: settingsRepository.settings.first().defaultFuel
+            val settings = settingsRepository.settings.first()
+            val vehicle = settings.selectedVehicleId?.let { vehicleRepository.getById(it) }
+            vehicleId = vehicle?.id
+            val fuel = fuelArg ?: vehicle?.fuel ?: settings.defaultFuel
             _uiState.value = _uiState.value.copy(fuel = fuel)
         }
     }
@@ -106,7 +111,8 @@ class RefuelLogViewModel @Inject constructor(
                 fuel = state.fuel,
                 liters = state.liters.replace(',', '.').toDouble(),
                 amount = state.amount.replace(',', '.').toDouble(),
-                odometer = state.odometer.replace(',', '.').toDoubleOrNull()
+                odometer = state.odometer.replace(',', '.').toDoubleOrNull(),
+                vehicleId = vehicleId
             )
             _uiState.value = state.copy(saved = true)
         }

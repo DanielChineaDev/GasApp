@@ -7,6 +7,7 @@ import com.bpo.gasapp.data.local.GasDatabase
 import com.bpo.gasapp.data.local.PriceHistoryDao
 import com.bpo.gasapp.data.local.RefuelDao
 import com.bpo.gasapp.data.local.StationDao
+import com.bpo.gasapp.data.local.VehicleDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -36,4 +37,7 @@ object DatabaseModule {
 
     @Provides
     fun provideRefuelDao(db: GasDatabase): RefuelDao = db.refuelDao()
+
+    @Provides
+    fun provideVehicleDao(db: GasDatabase): VehicleDao = db.vehicleDao()
 }

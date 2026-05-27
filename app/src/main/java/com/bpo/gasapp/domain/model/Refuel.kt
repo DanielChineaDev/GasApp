@@ -8,6 +8,7 @@ data class Refuel(
     val liters: Double,
     val amount: Double,
     val odometer: Double? = null,
+    val vehicleId: Long? = null,
     val timestamp: Long
 ) {
     val pricePerLiter: Double? get() = if (liters > 0) amount / liters else null

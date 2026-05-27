@@ -6,15 +6,17 @@ import com.bpo.gasapp.data.local.entity.FavoriteEntity
 import com.bpo.gasapp.data.local.entity.PriceHistoryEntity
 import com.bpo.gasapp.data.local.entity.RefuelEntity
 import com.bpo.gasapp.data.local.entity.StationEntity
+import com.bpo.gasapp.data.local.entity.VehicleEntity
 
 @Database(
     entities = [
         StationEntity::class,
         FavoriteEntity::class,
         PriceHistoryEntity::class,
-        RefuelEntity::class
+        RefuelEntity::class,
+        VehicleEntity::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 abstract class GasDatabase : RoomDatabase() {
@@ -22,6 +24,7 @@ abstract class GasDatabase : RoomDatabase() {
     abstract fun favoriteDao(): FavoriteDao
     abstract fun priceHistoryDao(): PriceHistoryDao
     abstract fun refuelDao(): RefuelDao
+    abstract fun vehicleDao(): VehicleDao
 
     companion object {
         const val NAME = "gasapp.db"

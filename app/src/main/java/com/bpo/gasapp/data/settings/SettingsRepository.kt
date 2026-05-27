@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.bpo.gasapp.domain.model.AppSettings
 import com.bpo.gasapp.domain.model.FuelType
@@ -28,7 +29,8 @@ class SettingsRepository @Inject constructor(
             dynamicColor = prefs[KEY_DYNAMIC] ?: true,
             alertFuel = prefs[KEY_ALERT_FUEL]?.let { runCatching { FuelType.valueOf(it) }.getOrNull() }
                 ?: FuelType.GASOLINA_95,
-            alertThreshold = prefs[KEY_ALERT_THRESHOLD]
+            alertThreshold = prefs[KEY_ALERT_THRESHOLD],
+            selectedVehicleId = prefs[KEY_SELECTED_VEHICLE]
         )
     }
 
@@ -48,6 +50,12 @@ class SettingsRepository @Inject constructor(
         dataStore.edit { it[KEY_DYNAMIC] = enabled }
     }
 
+    suspend fun setSelectedVehicle(id: Long?) {
+        dataStore.edit {
+            if (id == null) it.remove(KEY_SELECTED_VEHICLE) else it[KEY_SELECTED_VEHICLE] = id
+        }
+    }
+
     suspend fun setPriceAlert(fuel: FuelType, threshold: Double?) {
         dataStore.edit {
             it[KEY_ALERT_FUEL] = fuel.name
@@ -62,5 +70,6 @@ class SettingsRepository @Inject constructor(
         val KEY_DYNAMIC = booleanPreferencesKey("dynamic_color")
         val KEY_ALERT_FUEL = stringPreferencesKey("alert_fuel")
         val KEY_ALERT_THRESHOLD = doublePreferencesKey("alert_threshold")
+        val KEY_SELECTED_VEHICLE = longPreferencesKey("selected_vehicle")
     }
 }

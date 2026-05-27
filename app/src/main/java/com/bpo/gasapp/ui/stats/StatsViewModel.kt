@@ -2,6 +2,7 @@ package com.bpo.gasapp.ui.stats
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.bpo.gasapp.data.settings.SettingsRepository
 import com.bpo.gasapp.domain.model.MonthlyStat
 import com.bpo.gasapp.domain.model.Refuel
 import com.bpo.gasapp.domain.repository.RefuelRepository
@@ -9,6 +10,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -27,13 +29,20 @@ data class StatsUiState(
 
 @HiltViewModel
 class StatsViewModel @Inject constructor(
-    private val repository: RefuelRepository
+    private val repository: RefuelRepository,
+    private val settingsRepository: SettingsRepository
 ) : ViewModel() {
 
     private val monthKeyFormat = SimpleDateFormat("yyyy-MM", Locale.getDefault())
 
     val uiState: StateFlow<StatsUiState> =
-        repository.observeRefuels().map { refuels ->
+        combine(
+            repository.observeRefuels(),
+            settingsRepository.settings
+        ) { allRefuels, settings ->
+            val selectedId = settings.selectedVehicleId
+            val refuels = if (selectedId == null) allRefuels
+            else allRefuels.filter { it.vehicleId == selectedId }
             val months = refuels
                 .groupBy { monthKeyFormat.format(Date(it.timestamp)) }
                 .map { (month, list) ->

@@ -17,6 +17,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ListAlt
 import androidx.compose.material.icons.filled.DirectionsCar
+import androidx.compose.material.icons.filled.DirectionsCarFilled
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Route
 import androidx.compose.material.icons.filled.Savings
@@ -55,6 +56,7 @@ fun ProfileScreen(
     onPlanner: () -> Unit,
     onSaving: () -> Unit,
     onCarMode: () -> Unit,
+    onVehicles: () -> Unit,
     onSettings: () -> Unit,
     viewModel: AccountViewModel = hiltViewModel()
 ) {
@@ -138,6 +140,7 @@ fun ProfileScreen(
             HorizontalDivider()
 
             MenuRow(Icons.AutoMirrored.Filled.ListAlt, "Mis estadísticas", onStats)
+            MenuRow(Icons.Default.DirectionsCarFilled, "Mis vehículos", onVehicles)
             MenuRow(Icons.Default.Route, "Planificar ruta", onPlanner)
             MenuRow(Icons.Default.Savings, "Modo ahorro", onSaving)
             MenuRow(Icons.Default.DirectionsCar, "Modo coche", onCarMode)
