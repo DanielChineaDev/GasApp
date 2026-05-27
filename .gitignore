@@ -12,3 +12,6 @@ local.properties
 
 # Secrets / config you must not commit
 app/google-services.json
+keystore.properties
+*.keystore
+*.jks

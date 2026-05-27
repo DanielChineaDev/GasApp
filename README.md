@@ -88,16 +88,44 @@ Después, abre el proyecto en Android Studio y ejecuta, o desde la terminal:
 ./gradlew :app:assembleDebug
 ```
 
-### Reglas de Firestore sugeridas
+### Reglas de Firestore
 
-```
-match /users/{uid} {
-  allow read, write: if request.auth != null && request.auth.uid == uid;
-  match /favorites/{doc} {
-    allow read, write: if request.auth != null && request.auth.uid == uid;
-  }
-}
-```
+Están versionadas en [`firestore.rules`](firestore.rules). Despliégalas con
+`firebase deploy --only firestore:rules` o pégalas en la consola de Firestore.
+
+## Compilar para producción (release)
+
+1. **Crea un keystore** (una vez):
+
+   ```
+   keytool -genkey -v -keystore release.keystore -alias gasapp \
+     -keyalg RSA -keysize 2048 -validity 10000
+   ```
+
+2. **Crea `keystore.properties`** en la raíz (NO se versiona):
+
+   ```
+   storeFile=release.keystore
+   storePassword=tu_password
+   keyAlias=gasapp
+   keyPassword=tu_password
+   ```
+
+3. **Genera el artefacto firmado** (R8 + shrink de recursos activados):
+
+   ```
+   ./gradlew :app:assembleRelease     # APK
+   ./gradlew :app:bundleRelease       # AAB para Google Play
+   ```
+
+   Si no existe `keystore.properties`, el release se genera **sin firmar**
+   (solo para verificar la compilación).
+
+4. **SHA-1 de release**: añade la huella de tu keystore de release a Firebase
+   (para Google Sign-In), además de la de depuración.
+
+> La base de datos exporta su esquema en `app/schemas/` y usa **migraciones
+> reales**: al subir de versión, los datos del usuario se conservan.
 
 ## Datos del proyecto
 

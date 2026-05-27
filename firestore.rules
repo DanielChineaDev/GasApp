@@ -1,0 +1,31 @@
+rules_version = '2';
+
+// Reglas de seguridad de Firestore para GasApp.
+// Despliega con:  firebase deploy --only firestore:rules
+// (o pega su contenido en Firebase Console -> Firestore -> Reglas)
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Perfil del usuario: combustible por defecto y subcolección de favoritas.
+    // Cada usuario solo puede leer/escribir lo suyo.
+    match /users/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+
+      match /favorites/{stationId} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
+      }
+    }
+
+    // Reseñas de gasolineras: lectura pública, escritura solo del propio usuario
+    // (el id del documento es el uid, así que cada usuario tiene una reseña).
+    match /reviews/{stationId}/items/{uid} {
+      allow read: if true;
+      allow create, update, delete: if request.auth != null
+        && request.auth.uid == uid
+        && request.resource.data.rating is int
+        && request.resource.data.rating >= 1
+        && request.resource.data.rating <= 5;
+    }
+  }
+}
