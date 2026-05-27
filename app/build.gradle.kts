@@ -107,6 +107,7 @@ dependencies {
     implementation(libs.datastore.preferences)
     implementation(libs.glance.appwidget)
     implementation(libs.glance.material3)
+    implementation(libs.mlkit.text.recognition)
 
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.auth)

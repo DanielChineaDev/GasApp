@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.bpo.gasapp.data.settings.SettingsRepository
 import com.bpo.gasapp.domain.model.FuelType
 import com.bpo.gasapp.domain.repository.RefuelRepository
+import com.bpo.gasapp.domain.util.TicketParser
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -62,6 +63,36 @@ class RefuelLogViewModel @Inject constructor(
     fun setFuel(v: FuelType) { _uiState.value = _uiState.value.copy(fuel = v) }
     fun setLiters(v: String) { _uiState.value = _uiState.value.copy(liters = v) }
     fun setAmount(v: String) { _uiState.value = _uiState.value.copy(amount = v) }
+
+    fun setProcessingPhoto(processing: Boolean) {
+        _uiState.value = _uiState.value.copy(isProcessingPhoto = processing, photoMessage = null)
+    }
+
+    /** Fills liters/amount from the OCR text of a ticket or pump photo. */
+    fun applyOcrText(text: String) {
+        val result = TicketParser.parse(text)
+        val state = _uiState.value
+        val message = when {
+            result.liters == null && result.amount == null ->
+                "No se reconocieron datos. Introdúcelos a mano."
+            result.liters == null -> "Solo se detectó el importe. Revisa los litros."
+            result.amount == null -> "Solo se detectaron los litros. Revisa el importe."
+            else -> "Datos detectados. Revísalos antes de guardar."
+        }
+        _uiState.value = state.copy(
+            liters = result.liters?.let { "%.2f".format(it) } ?: state.liters,
+            amount = result.amount?.let { "%.2f".format(it) } ?: state.amount,
+            isProcessingPhoto = false,
+            photoMessage = message
+        )
+    }
+
+    fun onOcrFailed() {
+        _uiState.value = _uiState.value.copy(
+            isProcessingPhoto = false,
+            photoMessage = "No se pudo leer la imagen. Inténtalo de nuevo o introdúcelo a mano."
+        )
+    }
 
     fun save() {
         val state = _uiState.value
