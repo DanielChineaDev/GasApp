@@ -19,6 +19,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bpo.gasapp.domain.model.ThemeMode
 import com.bpo.gasapp.ui.navigation.GasNavHost
+import com.bpo.gasapp.ui.onboarding.OnboardingScreen
 import com.bpo.gasapp.ui.settings.SettingsViewModel
 import com.bpo.gasapp.ui.theme.GasAppTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -26,12 +27,16 @@ import dagger.hilt.android.AndroidEntryPoint
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
-        installSplashScreen()
+        val splash = installSplashScreen()
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         setContent {
             val settingsViewModel: SettingsViewModel = hiltViewModel()
             val settings by settingsViewModel.settings.collectAsStateWithLifecycle()
+            val onboardingDone by settingsViewModel.onboardingDone.collectAsStateWithLifecycle()
+
+            splash.setKeepOnScreenCondition { onboardingDone == null }
+
             val darkTheme = when (settings.themeMode) {
                 ThemeMode.SYSTEM -> isSystemInDarkTheme()
                 ThemeMode.LIGHT -> false
@@ -48,7 +53,11 @@ class MainActivity : ComponentActivity() {
                     }
                 }
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    GasNavHost()
+                    when (onboardingDone) {
+                        null -> Unit
+                        false -> OnboardingScreen()
+                        true -> GasNavHost()
+                    }
                 }
             }
         }

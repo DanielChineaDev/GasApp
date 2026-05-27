@@ -10,6 +10,7 @@ import com.bpo.gasapp.domain.model.ThemeMode
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -25,6 +26,22 @@ class SettingsViewModel @Inject constructor(
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = AppSettings()
     )
+
+    /** Null while loading from DataStore, then the actual flag. */
+    val onboardingDone: StateFlow<Boolean?> = repository.settings
+        .map { it.onboardingDone }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = null
+        )
+
+    fun completeOnboarding(fuel: FuelType) {
+        viewModelScope.launch {
+            repository.setDefaultFuel(fuel)
+            repository.setOnboardingDone(true)
+        }
+    }
 
     fun setTheme(mode: ThemeMode) {
         viewModelScope.launch { repository.setThemeMode(mode) }

@@ -2,6 +2,7 @@ package com.bpo.gasapp.data.settings
 
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.bpo.gasapp.domain.model.AppSettings
@@ -21,7 +22,8 @@ class SettingsRepository @Inject constructor(
             themeMode = prefs[KEY_THEME]?.let { runCatching { ThemeMode.valueOf(it) }.getOrNull() }
                 ?: ThemeMode.SYSTEM,
             defaultFuel = prefs[KEY_FUEL]?.let { runCatching { FuelType.valueOf(it) }.getOrNull() }
-                ?: FuelType.GASOLINA_95
+                ?: FuelType.GASOLINA_95,
+            onboardingDone = prefs[KEY_ONBOARDING] ?: false
         )
     }
 
@@ -33,8 +35,13 @@ class SettingsRepository @Inject constructor(
         dataStore.edit { it[KEY_FUEL] = fuel.name }
     }
 
+    suspend fun setOnboardingDone(done: Boolean) {
+        dataStore.edit { it[KEY_ONBOARDING] = done }
+    }
+
     private companion object {
         val KEY_THEME = stringPreferencesKey("theme_mode")
         val KEY_FUEL = stringPreferencesKey("default_fuel")
+        val KEY_ONBOARDING = booleanPreferencesKey("onboarding_done")
     }
 }
