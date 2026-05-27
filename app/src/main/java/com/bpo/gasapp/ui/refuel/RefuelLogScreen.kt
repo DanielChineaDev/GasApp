@@ -148,6 +148,15 @@ fun RefuelLogScreen(
                 )
             }
 
+            OutlinedTextField(
+                value = state.odometer,
+                onValueChange = viewModel::setOdometer,
+                label = { Text("Cuentakilómetros (opcional)") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.fillMaxWidth()
+            )
+
             state.pricePerLiter?.let {
                 Text(
                     "Precio: %.3f €/L".format(it),

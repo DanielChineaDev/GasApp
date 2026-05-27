@@ -20,6 +20,7 @@ data class RefuelLogUiState(
     val fuel: FuelType = FuelType.GASOLINA_95,
     val liters: String = "",
     val amount: String = "",
+    val odometer: String = "",
     val isProcessingPhoto: Boolean = false,
     val photoMessage: String? = null,
     val saved: Boolean = false
@@ -63,6 +64,7 @@ class RefuelLogViewModel @Inject constructor(
     fun setFuel(v: FuelType) { _uiState.value = _uiState.value.copy(fuel = v) }
     fun setLiters(v: String) { _uiState.value = _uiState.value.copy(liters = v) }
     fun setAmount(v: String) { _uiState.value = _uiState.value.copy(amount = v) }
+    fun setOdometer(v: String) { _uiState.value = _uiState.value.copy(odometer = v) }
 
     fun setProcessingPhoto(processing: Boolean) {
         _uiState.value = _uiState.value.copy(isProcessingPhoto = processing, photoMessage = null)
@@ -103,7 +105,8 @@ class RefuelLogViewModel @Inject constructor(
                 stationName = state.stationName.ifBlank { "Repostaje" },
                 fuel = state.fuel,
                 liters = state.liters.replace(',', '.').toDouble(),
-                amount = state.amount.replace(',', '.').toDouble()
+                amount = state.amount.replace(',', '.').toDouble(),
+                odometer = state.odometer.replace(',', '.').toDoubleOrNull()
             )
             _uiState.value = state.copy(saved = true)
         }

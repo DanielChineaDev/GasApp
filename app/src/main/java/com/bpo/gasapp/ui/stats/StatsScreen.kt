@@ -1,16 +1,19 @@
 package com.bpo.gasapp.ui.stats
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -41,6 +44,7 @@ fun StatsScreen(
     viewModel: StatsViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     Scaffold(
         topBar = {
@@ -49,6 +53,13 @@ fun StatsScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Atrás")
+                    }
+                },
+                actions = {
+                    if (state.refuels.isNotEmpty()) {
+                        IconButton(onClick = { exportRefuelsCsv(context, state.refuels) }) {
+                            Icon(Icons.Default.Download, contentDescription = "Exportar CSV")
+                        }
                     }
                 }
             )
@@ -77,8 +88,77 @@ fun StatsScreen(
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
+                if (state.avgConsumption != null || state.avgCostPerKm != null) {
+                    item(key = "consumption") {
+                        ConsumptionCard(state.avgConsumption, state.avgCostPerKm)
+                    }
+                }
+                item(key = "chart") { SpendChart(state.months) }
                 items(state.months, key = { it.month }) { month ->
                     MonthCard(month)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ConsumptionCard(consumption: Double?, costPerKm: Double?) {
+    Card(
+        Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+    ) {
+        Row(
+            Modifier.fillMaxWidth().padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            Column(horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
+                Text(
+                    consumption?.let { "%.1f".format(it) } ?: "—",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold
+                )
+                Text("L/100 km", style = MaterialTheme.typography.labelMedium)
+            }
+            Column(horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
+                Text(
+                    costPerKm?.let { "%.3f €".format(it) } ?: "—",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold
+                )
+                Text("coste/km", style = MaterialTheme.typography.labelMedium)
+            }
+        }
+    }
+}
+
+@Composable
+private fun SpendChart(months: List<MonthlyStat>) {
+    if (months.isEmpty()) return
+    val data = months.sortedBy { it.month }.takeLast(6)
+    val max = data.maxOf { it.totalAmount }.takeIf { it > 0 } ?: 1.0
+    val barColor = MaterialTheme.colorScheme.primary
+    Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Gasto por mes", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Row(
+                modifier = Modifier.fillMaxWidth().height(120.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = androidx.compose.ui.Alignment.Bottom
+            ) {
+                data.forEach { m ->
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Bottom
+                    ) {
+                        Text("%.0f".format(m.totalAmount), style = MaterialTheme.typography.labelSmall)
+                        val barHeight = (90.0 * (m.totalAmount / max)).dp.coerceAtLeast(4.dp)
+                        Canvas(modifier = Modifier.fillMaxWidth().height(barHeight)) {
+                            drawRect(barColor)
+                        }
+                        Text(m.month.takeLast(2), style = MaterialTheme.typography.labelSmall)
+                    }
                 }
             }
         }

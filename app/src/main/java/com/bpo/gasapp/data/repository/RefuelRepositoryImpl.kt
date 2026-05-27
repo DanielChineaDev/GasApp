@@ -28,6 +28,7 @@ class RefuelRepositoryImpl @Inject constructor(
                     fuel = fuel,
                     liters = entity.liters,
                     amount = entity.amount,
+                    odometer = entity.odometer,
                     timestamp = entity.timestamp
                 )
             }
@@ -38,7 +39,8 @@ class RefuelRepositoryImpl @Inject constructor(
         stationName: String,
         fuel: FuelType,
         liters: Double,
-        amount: Double
+        amount: Double,
+        odometer: Double?
     ) {
         refuelDao.insert(
             RefuelEntity(
@@ -47,6 +49,7 @@ class RefuelRepositoryImpl @Inject constructor(
                 fuel = fuel.name,
                 liters = liters,
                 amount = amount,
+                odometer = odometer,
                 timestamp = System.currentTimeMillis()
             )
         )

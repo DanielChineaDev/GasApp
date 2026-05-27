@@ -11,5 +11,6 @@ data class RefuelEntity(
     val fuel: String,
     val liters: Double,
     val amount: Double,
+    val odometer: Double?,
     val timestamp: Long
 )

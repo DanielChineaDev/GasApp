@@ -14,7 +14,7 @@ import com.bpo.gasapp.data.local.entity.StationEntity
         PriceHistoryEntity::class,
         RefuelEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class GasDatabase : RoomDatabase() {

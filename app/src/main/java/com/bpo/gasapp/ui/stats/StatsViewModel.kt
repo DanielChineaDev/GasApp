@@ -20,7 +20,9 @@ import javax.inject.Inject
 
 data class StatsUiState(
     val months: List<MonthlyStat> = emptyList(),
-    val refuels: List<Refuel> = emptyList()
+    val refuels: List<Refuel> = emptyList(),
+    val avgConsumption: Double? = null,
+    val avgCostPerKm: Double? = null
 )
 
 @HiltViewModel
@@ -43,7 +45,25 @@ class StatsViewModel @Inject constructor(
                     )
                 }
                 .sortedByDescending { it.month }
-            StatsUiState(months = months, refuels = refuels)
+
+            // Consumption: full-to-full between consecutive refuels with odometer.
+            val ordered = refuels.filter { it.odometer != null }.sortedBy { it.odometer }
+            val consumptions = mutableListOf<Double>()
+            val costsPerKm = mutableListOf<Double>()
+            for (i in 1 until ordered.size) {
+                val km = (ordered[i].odometer!! - ordered[i - 1].odometer!!)
+                if (km > 0) {
+                    consumptions += ordered[i].liters / km * 100.0
+                    costsPerKm += ordered[i].amount / km
+                }
+            }
+
+            StatsUiState(
+                months = months,
+                refuels = refuels,
+                avgConsumption = consumptions.takeIf { it.isNotEmpty() }?.average(),
+                avgCostPerKm = costsPerKm.takeIf { it.isNotEmpty() }?.average()
+            )
         }.flowOn(Dispatchers.Default).stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),

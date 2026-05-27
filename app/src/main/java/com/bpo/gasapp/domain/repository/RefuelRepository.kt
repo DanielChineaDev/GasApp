@@ -6,6 +6,6 @@ import kotlinx.coroutines.flow.Flow
 
 interface RefuelRepository {
     fun observeRefuels(): Flow<List<Refuel>>
-    suspend fun add(stationId: String?, stationName: String, fuel: FuelType, liters: Double, amount: Double)
+    suspend fun add(stationId: String?, stationName: String, fuel: FuelType, liters: Double, amount: Double, odometer: Double?)
     suspend fun delete(id: Long)
 }
