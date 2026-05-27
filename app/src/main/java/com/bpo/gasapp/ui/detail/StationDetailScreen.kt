@@ -152,14 +152,14 @@ private fun StationPhoto(station: Station) {
             .fillMaxWidth()
             .height(180.dp)
             .clip(androidx.compose.foundation.shape.RoundedCornerShape(16.dp))
-            .background(MaterialTheme.colorScheme.primaryContainer),
+            .background(com.bpo.gasapp.ui.components.brandColor(station.brand)),
         contentAlignment = Alignment.Center
     ) {
         Text(
             text = station.brand.take(1).uppercase(),
             style = MaterialTheme.typography.displayMedium,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onPrimaryContainer
+            color = androidx.compose.ui.graphics.Color.White
         )
         coil.compose.AsyncImage(
             model = url,
