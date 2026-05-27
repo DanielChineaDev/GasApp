@@ -117,7 +117,17 @@ fun GasNavHost(navController: NavHostController = rememberNavController()) {
                 )
             }
             composable(Routes.ACCOUNT) {
-                AccountScreen(onBack = { navController.popBackStack() })
+                AccountScreen(
+                    onBack = { navController.popBackStack() },
+                    onStatsClick = { navController.navigate(Routes.STATS) },
+                    onFavoritesClick = {
+                        navController.navigate(Routes.FAVORITES) {
+                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }
+                )
             }
             composable(Routes.SETTINGS) {
                 SettingsScreen(onBack = { navController.popBackStack() })

@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -36,6 +37,14 @@ class AccountViewModel @Inject constructor(
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = authRepository.currentUser()
     )
+
+    val favoritesCount: StateFlow<Int> = stationRepository.observeFavorites()
+        .map { it.size }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = 0
+        )
 
     private val _form = MutableStateFlow(AccountFormState())
     val form: StateFlow<AccountFormState> = _form.asStateFlow()
