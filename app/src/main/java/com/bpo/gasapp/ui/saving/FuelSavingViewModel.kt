@@ -10,11 +10,13 @@ import com.bpo.gasapp.domain.model.UserLocation
 import com.bpo.gasapp.domain.repository.StationRepository
 import com.bpo.gasapp.domain.util.distanceMeters
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -92,7 +94,7 @@ class FuelSavingViewModel @Inject constructor(
             }
 
             FuelSavingUiState(liters, consumptionL100, fuel, items, true)
-        }.stateIn(
+        }.flowOn(Dispatchers.Default).stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
             initialValue = FuelSavingUiState()

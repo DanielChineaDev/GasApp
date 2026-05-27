@@ -12,11 +12,13 @@ import com.bpo.gasapp.domain.repository.StationRepository
 import com.bpo.gasapp.domain.util.ScheduleParser
 import com.bpo.gasapp.domain.util.distanceMeters
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
@@ -77,7 +79,7 @@ class StationListViewModel @Inject constructor(
                 isRefreshing = refreshing,
                 error = err
             )
-        }.stateIn(
+        }.flowOn(Dispatchers.Default).stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
             initialValue = StationListUiState()

@@ -14,9 +14,11 @@ import com.bpo.gasapp.domain.model.PriceDrop
 import com.bpo.gasapp.domain.model.PricePoint
 import com.bpo.gasapp.domain.model.Station
 import com.bpo.gasapp.domain.repository.StationRepository
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -34,13 +36,13 @@ class StationRepositoryImpl @Inject constructor(
         combine(stationDao.observeAll(), favoriteDao.observeIds()) { stations, favIds ->
             val favSet = favIds.toHashSet()
             stations.map { it.toDomain(isFavorite = it.id in favSet) }
-        }
+        }.flowOn(Dispatchers.Default)
 
     override fun observeFavorites(): Flow<List<Station>> =
         combine(stationDao.observeAll(), favoriteDao.observeIds()) { stations, favIds ->
             val favSet = favIds.toHashSet()
             stations.filter { it.id in favSet }.map { it.toDomain(isFavorite = true) }
-        }
+        }.flowOn(Dispatchers.Default)
 
     override suspend fun getStation(id: String): Station? {
         val entity = stationDao.getById(id) ?: return null
