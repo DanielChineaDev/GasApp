@@ -57,4 +57,8 @@ class SettingsViewModel @Inject constructor(
     fun setDynamicColor(enabled: Boolean) {
         viewModelScope.launch { repository.setDynamicColor(enabled) }
     }
+
+    fun setPriceAlert(fuel: FuelType, threshold: Double?) {
+        viewModelScope.launch { repository.setPriceAlert(fuel, threshold) }
+    }
 }

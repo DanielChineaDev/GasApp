@@ -21,6 +21,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -102,6 +103,63 @@ fun SettingsScreen(
                     onCheckedChange = viewModel::setDynamicColor
                 )
             }
+
+            androidx.compose.material3.HorizontalDivider()
+
+            PriceAlertSection(
+                alertFuel = settings.alertFuel,
+                alertThreshold = settings.alertThreshold,
+                onSave = viewModel::setPriceAlert
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun PriceAlertSection(
+    alertFuel: FuelType,
+    alertThreshold: Double?,
+    onSave: (FuelType, Double?) -> Unit
+) {
+    var fuel by androidx.compose.runtime.remember(alertFuel) { androidx.compose.runtime.mutableStateOf(alertFuel) }
+    var text by androidx.compose.runtime.remember(alertThreshold) {
+        androidx.compose.runtime.mutableStateOf(alertThreshold?.let { "%.3f".format(it) } ?: "")
+    }
+
+    Text("Alerta de precio", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+    Text(
+        "Te avisamos si una gasolinera a menos de 20 km baja de este precio.",
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant
+    )
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        FuelType.entries.forEach { f ->
+            FilterChip(selected = f == fuel, onClick = { fuel = f }, label = { Text(f.label) })
+        }
+    }
+    androidx.compose.foundation.layout.Row(
+        Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        androidx.compose.material3.OutlinedTextField(
+            value = text,
+            onValueChange = { text = it },
+            label = { Text("Precio €/L") },
+            singleLine = true,
+            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal
+            ),
+            modifier = Modifier.weight(1f)
+        )
+        androidx.compose.material3.Button(onClick = {
+            onSave(fuel, text.replace(',', '.').toDoubleOrNull())
+        }) { Text("Guardar") }
+    }
+    if (alertThreshold != null) {
+        androidx.compose.material3.TextButton(onClick = { onSave(fuel, null) }) {
+            Text("Desactivar alerta")
         }
     }
 }

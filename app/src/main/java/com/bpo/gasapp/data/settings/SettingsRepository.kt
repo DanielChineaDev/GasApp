@@ -3,6 +3,7 @@ package com.bpo.gasapp.data.settings
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.bpo.gasapp.domain.model.AppSettings
@@ -24,7 +25,10 @@ class SettingsRepository @Inject constructor(
             defaultFuel = prefs[KEY_FUEL]?.let { runCatching { FuelType.valueOf(it) }.getOrNull() }
                 ?: FuelType.GASOLINA_95,
             onboardingDone = prefs[KEY_ONBOARDING] ?: false,
-            dynamicColor = prefs[KEY_DYNAMIC] ?: true
+            dynamicColor = prefs[KEY_DYNAMIC] ?: true,
+            alertFuel = prefs[KEY_ALERT_FUEL]?.let { runCatching { FuelType.valueOf(it) }.getOrNull() }
+                ?: FuelType.GASOLINA_95,
+            alertThreshold = prefs[KEY_ALERT_THRESHOLD]
         )
     }
 
@@ -44,10 +48,19 @@ class SettingsRepository @Inject constructor(
         dataStore.edit { it[KEY_DYNAMIC] = enabled }
     }
 
+    suspend fun setPriceAlert(fuel: FuelType, threshold: Double?) {
+        dataStore.edit {
+            it[KEY_ALERT_FUEL] = fuel.name
+            if (threshold == null) it.remove(KEY_ALERT_THRESHOLD) else it[KEY_ALERT_THRESHOLD] = threshold
+        }
+    }
+
     private companion object {
         val KEY_THEME = stringPreferencesKey("theme_mode")
         val KEY_FUEL = stringPreferencesKey("default_fuel")
         val KEY_ONBOARDING = booleanPreferencesKey("onboarding_done")
         val KEY_DYNAMIC = booleanPreferencesKey("dynamic_color")
+        val KEY_ALERT_FUEL = stringPreferencesKey("alert_fuel")
+        val KEY_ALERT_THRESHOLD = doublePreferencesKey("alert_threshold")
     }
 }

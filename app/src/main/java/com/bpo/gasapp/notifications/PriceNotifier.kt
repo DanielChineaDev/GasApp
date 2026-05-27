@@ -50,6 +50,18 @@ class PriceNotifier @Inject constructor(
         NotificationManagerCompat.from(context).notify(NOTIFICATION_ID, notification)
     }
 
+    fun notifyPriceAlert(stationName: String, fuelLabel: String, price: Double) {
+        if (!hasPermission()) return
+        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setContentTitle("¡Precio bajo cerca de ti!")
+            .setContentText("$stationName: $fuelLabel a %.3f €/L".format(price))
+            .setAutoCancel(true)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .build()
+        NotificationManagerCompat.from(context).notify(NOTIFICATION_ID + 1, notification)
+    }
+
     private fun hasPermission(): Boolean =
         Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
             ContextCompat.checkSelfPermission(
