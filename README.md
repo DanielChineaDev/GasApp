@@ -1,133 +1,198 @@
-# GasApp — Gasolina barata España
+# ⛽ GasApp — Gasolina barata España
 
-Aplicación Android para encontrar las gasolineras más baratas de España en
-tiempo real, comparar precios de combustible, navegar hasta ellas y llevar un
-control privado de tus repostajes.
+Una aplicación Android moderna y rápida para encontrar las gasolineras más baratas de España **en tiempo real**, comparar precios de combustible, navegar hasta ellas y llevar un control privado de tus repostajes con estadísticas inteligentes.
 
-Los precios provienen de la **API oficial y gratuita del Gobierno**
-(Ministerio para la Transición Ecológica), que publica todas las estaciones de
-servicio de España con sus precios actualizados varias veces al día.
+Los precios provienen de la **API oficial y gratuita del Gobierno** (MITECO), que publica todas las estaciones de servicio de España con actualizaciones varias veces al día.
 
-## Funcionalidades
+> **Ahorra dinero repostando inteligentemente.**
 
-### Buscar y ver precios
-- **Inicio tipo dashboard** con la gasolinera más barata cerca de ti.
-- **Lista** ordenada por precio/distancia/valor, con **buscador** por marca o ciudad.
-- **Heatmap de precio** (verde/ámbar/rojo según la media de la zona) y media mostrada.
-- **Mapa** con clústeres y **carteles de precio**; al tocar un marcador, panel
-  inferior con info rápida, compartir, "Ir" y favorito.
+---
+
+## 🎯 Funcionalidades principales
+
+### 🔎 Busca y explora
+- **Dashboard de inicio** con la gasolinera más barata cerca de ti.
+- **Lista** ordenada por precio/distancia/valor, con **buscador insensible a acentos**.
+- **Heatmap de precios** (verde/ámbar/rojo según media de zona).
+- **Mapa** con clústeres de gasolineras y carteles de precio; panel inferior con info rápida.
 - **Selector de combustible**: Gasolina 95, Gasolina 98, Diésel, Diésel Premium.
-- **Filtros**: distancia (1/5/10/25 km), marca y "abiertas ahora".
-- **Ubicación y distancia** a cada gasolinera; **pull-to-refresh**.
-- **Detalle** con foto (Street View), todos los precios, historial de precios,
-  compartir y "Ir allí" (Google Maps con fallback web).
+- **Filtros inteligentes**: distancia (slider 1-30 km, default 5), marca (normalizadas), "abiertas ahora".
+- **Ubicación en tiempo real** y distancia exacta; **pull-to-refresh**.
+- **Detalle** con foto (Street View), histórico de precios y "Ir allí" (Google Maps/web).
 
-### Cuenta y personalización
-- **Login** con email/contraseña y **Google**; perfil con avatar y edición de nombre.
+### 👤 Sincronización y personalización
+- **Login** con email/contraseña y **Google** (Credential Manager).
 - **Favoritas** y **combustible por defecto** sincronizados en Firestore.
-- **Onboarding** inicial y **Ajustes**: tema claro/oscuro, paleta de marca o
-  Material You, combustible por defecto, alertas de precio.
+- Perfil editable con avatar circular.
+- **Onboarding** interactivo la primera vez.
+- **Ajustes**: tema claro/oscuro, Material You (opcional), combustible, alertas.
+- Botón "Volver a ver tour inicial" en Ajustes.
 
-### Inteligencia y herramientas
-- **Notificaciones** de bajada de precio en favoritas y **alertas por umbral**.
+### 💰 Ahorro e inteligencia
+- **Dinero ahorrado**: calcula automáticamente cuánto ahorras repostando por debajo de la media.
+- **Sistema de logros** (requiere sesión): primeros repostajes, coleccionista, ahorrador, mecenas.
+- **Notificaciones** de bajada de precio en favoritas y **alertas personalizadas**.
 - **Refresco automático** en segundo plano (WorkManager).
-- **Comparador de depósito lleno**, **planificador de ruta** (corredor),
-  **modo ahorro** (ahorro neto por desvío) y **modo coche**.
-- **Estadísticas privadas**: gasto mensual con gráfico, consumo real
-  (L/100 km), coste/km, **OCR del ticket** (ML Kit) y **exportar a CSV**.
 
-### Sistema
-- **Widget** con las favoritas más baratas, **atajo de app** y avatar de marca
-  por gasolinera.
+### 📊 Estadísticas y herramientas
+- **Gráfico de gasto** mensual con exportación a CSV.
+- **Consumo real** (L/100 km) y coste/km calculados automáticamente.
+- **Modo ahorro**: encuentra gasolineras baratas en tu ruta.
+- **Modo coche**: precio en grande para ver al volante.
+- **OCR del ticket** (ML Kit): registra repostajes escaneando fotos.
+- **Multi-vehículo**: gestiona consumo y preferencias por coche.
+- **Calendario de gastos**: navega meses pasados/futuros.
 
-## Arquitectura
+### 🎁 Sistema
+- **Widget** con favoritas más baratas.
+- **Atajos de app** para acceso rápido.
+- **Avatares de marca** en mapas y listas.
+- **Reseñas** de gasolineras (Firestore).
+- **Códigos promocionales** para quitar anuncios.
 
-MVVM + Jetpack Compose, con separación en capas:
+---
 
-```
-domain/   modelos, repositorios (interfaces), utilidades de negocio
-data/     API (Retrofit), cache (Room), localización, ajustes (DataStore),
-          remoto (Firestore), mapeadores, repositorios
-ui/       pantallas Compose + ViewModels (StateFlow)
-di/       módulos Hilt (network, database, location, settings, firebase, repository)
-work/     WorkManager · widget/ Glance · notifications/
-```
+## 🏗️ Arquitectura
 
-**Stack principal:** Kotlin · Jetpack Compose (Material 3 / Material You) · Hilt ·
-Retrofit + kotlinx.serialization · Room · DataStore · Coroutines/Flow ·
-Navigation Compose · Google Maps Compose · FusedLocation · WorkManager · Glance ·
-ML Kit Text Recognition · Credential Manager · Firebase (Auth + Firestore).
-
-## Configuración para compilar
-
-El proyecto necesita archivos locales que **no** se versionan:
-
-1. **`local.properties`**:
-
-   ```
-   MAPS_API_KEY=tu_clave_de_google_maps
-   WEB_CLIENT_ID=xxxxx.apps.googleusercontent.com   # opcional, solo para login con Google
-   ```
-
-   - `MAPS_API_KEY`: Google Cloud Console → habilita *Maps SDK for Android*
-     (y *Street View Static API* para la foto del detalle).
-   - `WEB_CLIENT_ID`: ID de cliente web OAuth de Firebase (tras habilitar Google
-     en Authentication). Sin él, el login con Google queda desactivado.
-
-2. **`app/google-services.json`** — descárgalo de tu proyecto en
-   [Firebase Console](https://console.firebase.google.com) (app Android con
-   package `com.bpo.gasapp`). Habilita **Authentication** (Email + Google) y
-   **Firestore**.
-
-Para login con Google en dispositivo, añade tu **huella SHA-1** a la app Android
-en Firebase y vuelve a descargar `google-services.json`.
-
-Después, abre el proyecto en Android Studio y ejecuta, o desde la terminal:
+**MVVM + Jetpack Compose**, con separación clara en capas:
 
 ```
+domain/   → Modelos, interfaces de repositorios, utilidades de negocio
+data/     → API (Retrofit), BD local (Room), localización, ajustes (DataStore),
+            remoto (Firestore), mapeos, implementaciones de repositorios
+ui/       → Pantallas Compose, ViewModels (StateFlow), navegación
+di/       → Inyección Hilt: network, BD, ubicación, ajustes, Firebase, repositorios
+work/     → WorkManager (refresco en background)
+widget/   → Glance (home screen widget)
+notifications/ → Firebase Cloud Messaging + push locales
+```
+
+**Stack tecnológico:**
+- **Kotlin** · **Jetpack Compose** (Material 3 + Material You opcional)
+- **Hilt** · **Retrofit** + **kotlinx.serialization** (parser decimal español)
+- **Room** (v1→v5 migraciones reales) · **DataStore**
+- **Coroutines** · **Flow** · **Navigation Compose**
+- **Google Maps Compose** (clústeres, Street View)
+- **FusedLocation** · **Geocoder**
+- **WorkManager** · **Glance** · **ML Kit Text Recognition**
+- **Credential Manager** · **Firebase (Auth + Firestore)**
+- **AdMob** + **Google Play Billing** (eliminar anuncios)
+
+---
+
+## 📱 Requisitos y configuración
+
+### Antes de compilar
+
+El proyecto necesita archivos locales que **no se versionan**:
+
+#### 1. `local.properties`
+
+```properties
+MAPS_API_KEY=tu_clave_de_google_maps
+WEB_CLIENT_ID=xxxxx.apps.googleusercontent.com
+ADMOB_APP_ID=ca-app-pub-xxxxxxxxxxxxxxxx~yyyyyyyyy
+ADMOB_BANNER_UNIT=ca-app-pub-xxxxxxxxxxxxxxxx/zzzzzzzzzz
+```
+
+- **MAPS_API_KEY**: desde Google Cloud Console → *Maps SDK for Android* + *Street View Static API*
+- **WEB_CLIENT_ID**: desde Firebase Console → Authentication → OAuth
+- **AdMob**: desde AdMob Console (opcional, para anuncios)
+
+#### 2. `app/google-services.json`
+
+Descárgalo de [Firebase Console](https://console.firebase.google.com) (proyecto Android `com.bpo.gasapp`).
+
+Habilita:
+- **Authentication**: Email + Google
+- **Firestore**: almacena favoritas, reseñas, códigos promocionales
+
+Añade tu **huella SHA-1** en Firebase → Authentication → Sign-in methods → Google.
+
+#### 3. `firestore.rules`
+
+Ya está versionado. Despliega con:
+```bash
+firebase deploy --only firestore:rules
+```
+
+### Compilar en debug
+
+```bash
 ./gradlew :app:assembleDebug
 ```
 
-### Reglas de Firestore
+---
 
-Están versionadas en [`firestore.rules`](firestore.rules). Despliégalas con
-`firebase deploy --only firestore:rules` o pégalas en la consola de Firestore.
+## 🏭 Compilar para producción
 
-## Compilar para producción (release)
+### 1. Crear keystore (una vez)
 
-1. **Crea un keystore** (una vez):
+```bash
+keytool -genkey -v -keystore release.keystore -alias gasapp \
+  -keyalg RSA -keysize 2048 -validity 10000
+```
 
-   ```
-   keytool -genkey -v -keystore release.keystore -alias gasapp \
-     -keyalg RSA -keysize 2048 -validity 10000
-   ```
+### 2. Crear `keystore.properties` (NO se versiona)
 
-2. **Crea `keystore.properties`** en la raíz (NO se versiona):
+```properties
+storeFile=release.keystore
+storePassword=tu_password_seguro
+keyAlias=gasapp
+keyPassword=tu_password_seguro
+```
 
-   ```
-   storeFile=release.keystore
-   storePassword=tu_password
-   keyAlias=gasapp
-   keyPassword=tu_password
-   ```
+### 3. Generar artefactos (R8 + shrink de recursos)
 
-3. **Genera el artefacto firmado** (R8 + shrink de recursos activados):
+```bash
+./gradlew :app:assembleRelease     # APK
+./gradlew :app:bundleRelease       # AAB para Google Play
+```
 
-   ```
-   ./gradlew :app:assembleRelease     # APK
-   ./gradlew :app:bundleRelease       # AAB para Google Play
-   ```
+> **Nota:** La BD exporta su esquema en `app/schemas/` y usa **migraciones reales**, conservando datos del usuario al subir de versión.
 
-   Si no existe `keystore.properties`, el release se genera **sin firmar**
-   (solo para verificar la compilación).
+### 4. Registrar SHA-1 en Firebase
 
-4. **SHA-1 de release**: añade la huella de tu keystore de release a Firebase
-   (para Google Sign-In), además de la de depuración.
+Añade la huella SHA-1 del keystore de release en Firebase.
 
-> La base de datos exporta su esquema en `app/schemas/` y usa **migraciones
-> reales**: al subir de versión, los datos del usuario se conservan.
+---
 
-## Datos del proyecto
+## 🚀 Características avanzadas
 
-- **Package:** `com.bpo.gasapp`
-- **minSdk:** 24 · **targetSdk:** 35
+### Login con favoritas locales
+Al iniciar sesión, si hay favoritas guardadas localmente, GasApp pregunta:
+- **Fusionar**: une favoritas locales y remotas.
+- **Conservar solo estas**: local gana.
+- **Descartar**: usa las de la cuenta.
+
+### Cambio automático de combustible
+Seleccionar un vehículo cambia automáticamente:
+- Combustible por defecto.
+- Selector de combustible en la lista y filtros.
+- Combustible en las estadísticas.
+
+### Aprende el diseño
+El tour inicial se puede reproducir en cualquier momento desde **Ajustes**.
+
+---
+
+## 🛠️ Configuración del proyecto
+
+- **Package**: `com.bpo.gasapp`
+- **minSdk**: 24 · **targetSdk**: 35
+- **AGP**: 8.7.3 · **Kotlin**: 2.0.21
+- **Firebase BoM**: 33.7.0 (compatible con Kotlin 2.0)
+
+---
+
+## 💝 Apoya el desarrollo
+
+GasApp es **100 % gratuita**. Si te resulta útil, considera invitarme a un café en **[Ko-fi](https://ko-fi.com/josedanielchinea)** ☕
+
+---
+
+## 📄 Licencia
+
+Desarrollado por **Jose Daniel Chinea** · Contacto: `info@gasapp.cloud`
+
+> "Información oficial de precios en tiempo real. Hecha para ahorrar."
