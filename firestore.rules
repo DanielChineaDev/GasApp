@@ -27,5 +27,20 @@ service cloud.firestore {
         && request.resource.data.rating >= 1
         && request.resource.data.rating <= 5;
     }
+
+    // Códigos promocionales para "quitar anuncios":
+    // - Los crea el admin desde la consola (cada doc con `used: false`).
+    // - Un usuario autenticado puede LEER un código concreto (por id).
+    // - Listado, creación y borrado bloqueados desde la app.
+    // - La actualización solo está permitida si lo marca como usado y se
+    //   asigna al uid del propio canjeador (one-shot).
+    match /promoCodes/{code} {
+      allow get: if request.auth != null;
+      allow list, create, delete: if false;
+      allow update: if request.auth != null
+        && resource.data.used == false
+        && request.resource.data.used == true
+        && request.resource.data.usedByUid == request.auth.uid;
+    }
   }
 }

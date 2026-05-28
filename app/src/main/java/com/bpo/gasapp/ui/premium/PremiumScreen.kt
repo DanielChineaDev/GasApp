@@ -20,6 +20,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -35,7 +36,9 @@ fun PremiumScreen(
     viewModel: PremiumViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val promo by viewModel.promoState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    var showPromo by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -90,6 +93,65 @@ fun PremiumScreen(
                     }
                 }
             }
+
+            if (!state.isPremium) {
+                androidx.compose.material3.OutlinedButton(
+                    onClick = { showPromo = true },
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("¿Tienes un código?") }
+            }
         }
     }
+
+    if (showPromo) {
+        PromoDialog(
+            isRedeeming = promo.isRedeeming,
+            message = promo.message,
+            onRedeem = viewModel::redeemCode,
+            onDismiss = {
+                showPromo = false
+                viewModel.clearPromoMessage()
+            }
+        )
+    }
+}
+
+@Composable
+private fun PromoDialog(
+    isRedeeming: Boolean,
+    message: String?,
+    onRedeem: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var code by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("") }
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Canjear código") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                androidx.compose.material3.OutlinedTextField(
+                    value = code,
+                    onValueChange = { code = it.uppercase() },
+                    singleLine = true,
+                    label = { Text("Código promocional") }
+                )
+                if (message != null) {
+                    Text(
+                        message,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            androidx.compose.material3.TextButton(
+                onClick = { onRedeem(code) },
+                enabled = !isRedeeming && code.isNotBlank()
+            ) { Text(if (isRedeeming) "..." else "Canjear") }
+        },
+        dismissButton = {
+            androidx.compose.material3.TextButton(onClick = onDismiss) { Text("Cerrar") }
+        }
+    )
 }
