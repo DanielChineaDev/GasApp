@@ -8,8 +8,8 @@ enlázala desde la ficha de Google Play.
 
 ## 1. Responsable del tratamiento
 
-- **Responsable:** [TU NOMBRE O NOMBRE DE EMPRESA]
-- **Contacto:** [TU EMAIL DE CONTACTO]
+- **Responsable:** Jose Daniel Chinea
+- **Contacto:** info@gasapp.cloud
 
 ## 2. Datos que tratamos y para qué
 
@@ -58,7 +58,7 @@ usuario de GasApp).
 Puedes acceder, rectificar y eliminar tus datos:
 
 - Desde la app: cerrar sesión y borrar la app borra el acceso local.
-- Para eliminar tu cuenta y datos en la nube, escríbenos a **[TU EMAIL]**.
+- Para eliminar tu cuenta y datos en la nube, escríbenos a **info@gasapp.cloud**.
 - También puedes presentar una reclamación ante la AEPD (España):
   <https://www.aepd.es>
 

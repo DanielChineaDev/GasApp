@@ -14,40 +14,42 @@ docs/
 └── .htaccess         Gzip, caché y cabeceras (Apache / IONOS)
 ```
 
+## Estructura de dominios
+
+- **`gasapp.cloud`** → redirección 301 hacia **`landing.gasapp.cloud`**.
+- **`landing.gasapp.cloud`** → sirve esta landing (los archivos de `docs/`).
+
+En IONOS:
+1. *Dominios y SSL* → crea el subdominio **`landing.gasapp.cloud`** y
+   asígnale una carpeta del webspace (p. ej. `/landing/`).
+2. En *Dominio `gasapp.cloud`* → *Redirección* → configura **301** hacia
+   `https://landing.gasapp.cloud/`.
+
 ## Subida a IONOS
 
 ### Opción A — Panel de IONOS (sin programas)
-1. Entra en tu **Panel de IONOS** → *Hosting* → *Webspace Explorer* / *File Manager*.
-2. Sitúate en la **raíz pública** del dominio (suele ser `/` o `/public_html/`).
-3. **Sube TODO el contenido** de `docs/` (los 5 archivos anteriores). Si el
-   explorador oculta archivos que empiezan por punto, márcalos como visibles
-   para subir `.htaccess`.
-4. Abre tu dominio en el navegador → listo.
+1. **Panel de IONOS** → *Hosting* → *Webspace Explorer* / *File Manager*.
+2. Entra en la carpeta del subdominio `landing.gasapp.cloud` (la que
+   asignaste arriba, p. ej. `/landing/`).
+3. **Sube los 5 archivos** (`index.html`, `privacy.html`, `styles.css`,
+   `icon.png`, `.htaccess`). Si el explorador oculta archivos que empiezan
+   por punto, márcalos visibles para subir `.htaccess`.
+4. Abre `https://landing.gasapp.cloud` → listo.
 
 ### Opción B — FTP/SFTP con FileZilla u otro cliente
 
 - **Servidor / usuario / contraseña:** los de *Datos de acceso FTP* de IONOS.
-- **Carpeta destino:** la raíz pública del dominio.
-- Arrastra el contenido de `docs/` al panel remoto.
-
-### Subdominio (opcional)
-
-Si quieres usar `gasapp.tudominio.com`, crea el subdominio en IONOS apuntando
-a una subcarpeta (p. ej. `/subdomains/gasapp/`) y sube ahí los archivos.
+- **Carpeta destino:** la del subdominio `landing.gasapp.cloud`.
+- Arrastra los archivos.
 
 ## URL de la política de privacidad
 
-Una vez subida, la URL será:
+Esta es la URL que va en la ficha de **Google Play Console** (campo
+*Política de privacidad*):
 
 ```
-https://TU_DOMINIO/privacy.html
+https://landing.gasapp.cloud/privacy.html
 ```
-
-Esa es la URL que tienes que pegar en la **ficha de Google Play Console**
-(campo *Política de privacidad*).
-
-> Antes de subir, **rellena `[TU NOMBRE]` y `[TU EMAIL]`** en
-> `privacy.html` (líneas marcadas con `[...]`).
 
 ## Cambios futuros
 
