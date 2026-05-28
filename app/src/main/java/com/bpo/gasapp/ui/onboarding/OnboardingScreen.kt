@@ -57,6 +57,11 @@ private val PAGES = listOf(
         "🚗",
         "Modo coche y ahorro",
         "El precio en grande para mirar al volante y el modo ahorro para repostar siempre al mejor precio."
+    ),
+    TourPage(
+        "⭐",
+        "Sin anuncios y apoyo",
+        "Desde Ajustes puedes quitar los anuncios con un pago único. ¿Te gusta la app? Apoya el proyecto en Ko-fi ☕ y ayúdanos a seguir mejorándola."
     )
 )
 

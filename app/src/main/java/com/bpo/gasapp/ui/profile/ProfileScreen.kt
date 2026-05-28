@@ -151,6 +151,16 @@ fun ProfileScreen(
                 }
             }
 
+            SupportCard(
+                onKofi = {
+                    val intent = android.content.Intent(
+                        android.content.Intent.ACTION_VIEW,
+                        android.net.Uri.parse(KOFI_URL)
+                    )
+                    kotlin.runCatching { context.startActivity(intent) }
+                }
+            )
+
             HorizontalDivider()
 
             MenuRow(Icons.AutoMirrored.Filled.ListAlt, "Mis estadísticas", onStats)
@@ -164,16 +174,6 @@ fun ProfileScreen(
             MenuRow(Icons.Default.Settings, "Ajustes", onSettings)
 
             HorizontalDivider()
-
-            SupportCard(
-                onKofi = {
-                    val intent = android.content.Intent(
-                        android.content.Intent.ACTION_VIEW,
-                        android.net.Uri.parse(KOFI_URL)
-                    )
-                    kotlin.runCatching { context.startActivity(intent) }
-                }
-            )
 
             if (user != null) {
                 OutlinedButton(onClick = viewModel::logout, modifier = Modifier.fillMaxWidth()) {
