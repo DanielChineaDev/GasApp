@@ -14,28 +14,49 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
+// Paleta inspirada en el logo: verde hierba, azul cielo, naranja del surtidor
+// y rojo de la manguera.
 private val BrandGreen = Color(0xFF1B7A3D)
-private val BrandGreenDark = Color(0xFF7FD89A)
+private val BrandGreenLight = Color(0xFF7FD89A)
+private val BrandBlue = Color(0xFF1976D2)
+private val BrandBlueLight = Color(0xFF90CAF9)
+private val BrandOrange = Color(0xFFF57C00)
+private val BrandOrangeLight = Color(0xFFFFB74D)
+private val BrandRed = Color(0xFFD32F2F)
 
 private val LightColors = lightColorScheme(
     primary = BrandGreen,
     onPrimary = Color.White,
     primaryContainer = Color(0xFFB8F0C6),
     onPrimaryContainer = Color(0xFF00210E),
-    secondary = Color(0xFF00897B),
-    secondaryContainer = Color(0xFFB2DFDB),
+    secondary = BrandBlue,
+    onSecondary = Color.White,
+    secondaryContainer = Color(0xFFD1E4FF),
+    onSecondaryContainer = Color(0xFF001D36),
+    tertiary = BrandOrange,
+    onTertiary = Color.White,
+    tertiaryContainer = Color(0xFFFFDDB8),
+    onTertiaryContainer = Color(0xFF2A1700),
+    error = BrandRed,
     background = Color(0xFFF7FBF6),
     surface = Color(0xFFFFFFFF),
     surfaceVariant = Color(0xFFE3E9E3)
 )
 
 private val DarkColors = darkColorScheme(
-    primary = BrandGreenDark,
+    primary = BrandGreenLight,
     onPrimary = Color(0xFF003919),
     primaryContainer = Color(0xFF1B5E33),
     onPrimaryContainer = Color(0xFFB8F0C6),
-    secondary = Color(0xFF4DB6AC),
-    secondaryContainer = Color(0xFF00504A),
+    secondary = BrandBlueLight,
+    onSecondary = Color(0xFF003258),
+    secondaryContainer = Color(0xFF00497D),
+    onSecondaryContainer = Color(0xFFD1E4FF),
+    tertiary = BrandOrangeLight,
+    onTertiary = Color(0xFF462A00),
+    tertiaryContainer = Color(0xFF643F00),
+    onTertiaryContainer = Color(0xFFFFDDB8),
+    error = Color(0xFFFFB4AB),
     background = Color(0xFF0F1511),
     surface = Color(0xFF161D18),
     surfaceVariant = Color(0xFF3F4942)

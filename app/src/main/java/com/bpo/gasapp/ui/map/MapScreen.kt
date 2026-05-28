@@ -120,7 +120,7 @@ fun MapScreen(
                     true
                 },
                 clusterContent = { cluster -> ClusterBubble(cluster.size) },
-                clusterItemContent = { item -> PriceMarker(item.markerLabel) }
+                clusterItemContent = { item -> PriceMarker(item.markerLabel, item.station.brand) }
             )
         }
 
@@ -274,18 +274,36 @@ private fun StationSheet(
 }
 
 @Composable
-private fun PriceMarker(label: String) {
-    androidx.compose.foundation.layout.Box(
+private fun PriceMarker(label: String, brand: String) {
+    androidx.compose.foundation.layout.Row(
         modifier = androidx.compose.ui.Modifier
             .background(
-                color = androidx.compose.material3.MaterialTheme.colorScheme.primary,
+                color = androidx.compose.ui.graphics.Color.White,
                 shape = androidx.compose.foundation.shape.RoundedCornerShape(50)
             )
-            .padding(horizontal = 10.dp, vertical = 5.dp)
+            .padding(start = 4.dp, end = 10.dp, top = 4.dp, bottom = 4.dp),
+        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
     ) {
+        androidx.compose.foundation.layout.Box(
+            modifier = androidx.compose.ui.Modifier
+                .size(22.dp)
+                .background(
+                    color = com.bpo.gasapp.ui.components.brandColor(brand),
+                    shape = androidx.compose.foundation.shape.CircleShape
+                ),
+            contentAlignment = androidx.compose.ui.Alignment.Center
+        ) {
+            androidx.compose.material3.Text(
+                text = brand.take(1).uppercase().ifBlank { "?" },
+                color = androidx.compose.ui.graphics.Color.White,
+                style = androidx.compose.material3.MaterialTheme.typography.labelSmall,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+            )
+        }
+        androidx.compose.foundation.layout.Spacer(androidx.compose.ui.Modifier.size(6.dp))
         androidx.compose.material3.Text(
             text = label,
-            color = androidx.compose.material3.MaterialTheme.colorScheme.onPrimary,
+            color = androidx.compose.ui.graphics.Color.Black,
             style = androidx.compose.material3.MaterialTheme.typography.labelMedium,
             fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
         )

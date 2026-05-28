@@ -82,18 +82,18 @@ class StationListViewModel @Inject constructor(
                 }
             } else stations
 
-            val q = query.trim()
+            val qNorm = query.trim().normalizeForSearch()
             val filtered = withDistance.filter { station ->
                 val brandOk = filters.brands.isEmpty() || station.brand in filters.brands
                 val distanceOk = filters.maxDistanceKm == null ||
                     (station.distanceMeters != null &&
                         station.distanceMeters <= filters.maxDistanceKm * 1000f)
                 val openOk = !filters.openNowOnly || ScheduleParser.isOpen(station.schedule) != false
-                val searchOk = q.isEmpty() ||
-                    station.brand.contains(q, ignoreCase = true) ||
-                    station.name.contains(q, ignoreCase = true) ||
-                    station.city.contains(q, ignoreCase = true) ||
-                    station.province.contains(q, ignoreCase = true)
+                val searchOk = qNorm.isEmpty() ||
+                    station.brand.normalizeForSearch().contains(qNorm) ||
+                    station.name.normalizeForSearch().contains(qNorm) ||
+                    station.city.normalizeForSearch().contains(qNorm) ||
+                    station.province.normalizeForSearch().contains(qNorm)
                 brandOk && distanceOk && openOk && searchOk
             }
 
@@ -180,3 +180,11 @@ class StationListViewModel @Inject constructor(
         const val NEARBY_RADIUS_METERS = 100f
     }
 }
+
+private val DIACRITICS = Regex("\\p{InCombiningDiacriticalMarks}+")
+
+/** Quita tildes y pasa a minúsculas para que el buscador sea tolerante. */
+private fun String.normalizeForSearch(): String =
+    java.text.Normalizer.normalize(this, java.text.Normalizer.Form.NFD)
+        .replace(DIACRITICS, "")
+        .lowercase()
