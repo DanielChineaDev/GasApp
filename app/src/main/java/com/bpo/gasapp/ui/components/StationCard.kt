@@ -32,6 +32,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.bpo.gasapp.domain.model.FuelType
 import com.bpo.gasapp.domain.model.Station
+import com.bpo.gasapp.ui.theme.FavoriteRed
 
 private fun formatDistance(meters: Float): String =
     if (meters < 1000) "${meters.toInt()} m"
@@ -101,6 +102,16 @@ fun StationCard(
                 }
             }
 
+            if (station.isFavorite) {
+                Icon(
+                    imageVector = Icons.Default.Favorite,
+                    contentDescription = "En favoritas",
+                    tint = FavoriteRed,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(Modifier.size(6.dp))
+            }
+
             PricePill(price, zoneAverage)
 
             val favScale by animateFloatAsState(
@@ -113,7 +124,7 @@ fun StationCard(
                     imageVector = if (station.isFavorite) Icons.Default.Favorite
                     else Icons.Default.FavoriteBorder,
                     contentDescription = "Favorito",
-                    tint = if (station.isFavorite) MaterialTheme.colorScheme.primary
+                    tint = if (station.isFavorite) FavoriteRed
                     else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.scale(favScale)
                 )

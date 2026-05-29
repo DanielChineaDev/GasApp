@@ -24,6 +24,9 @@ private val BrandOrange = Color(0xFFF57C00)
 private val BrandOrangeLight = Color(0xFFFFB74D)
 private val BrandRed = Color(0xFFD32F2F)
 
+/** Red used consistently for the "favorite" heart across cards, markers and detail. */
+val FavoriteRed = Color(0xFFE53935)
+
 private val LightColors = lightColorScheme(
     primary = BrandBlue,
     onPrimary = Color.White,

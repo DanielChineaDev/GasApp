@@ -90,13 +90,19 @@ class StationListViewModel @Inject constructor(
                     (station.distanceMeters != null &&
                         station.distanceMeters <= filters.maxDistanceKm * 1000f)
                 val openOk = !filters.openNowOnly || ScheduleParser.isOpen(station.schedule) != false
+                val favOk = !filters.onlyFavorites || station.isFavorite
+                val price = station.priceOf(filters.fuel)
+                val priceOk = filters.maxPrice == null || (price != null && price <= filters.maxPrice)
                 val searchOk = qNorm.isEmpty() ||
                     station.brand.normalizeForSearch().contains(qNorm) ||
                     station.name.normalizeForSearch().contains(qNorm) ||
                     station.city.normalizeForSearch().contains(qNorm) ||
                     station.province.normalizeForSearch().contains(qNorm)
-                brandOk && distanceOk && openOk && searchOk
+                brandOk && distanceOk && openOk && favOk && priceOk && searchOk
             }
+
+            val prices = filtered.mapNotNull { it.priceOf(filters.fuel) }
+            val zoneAverage = if (prices.isNotEmpty()) prices.average() else null
 
             val sorted = when (filters.sortMode) {
                 com.bpo.gasapp.domain.model.SortMode.PRICE ->
@@ -107,10 +113,15 @@ class StationListViewModel @Inject constructor(
                     filtered.sortedWith(compareBy(nullsLast()) { s ->
                         s.priceOf(filters.fuel)?.plus((s.distanceMeters ?: 0f) / 1000.0 * 0.003)
                     })
+                // Ahorro respecto a la media de la zona: mayor ahorro primero.
+                // Precios desconocidos quedan al final (-infinito).
+                com.bpo.gasapp.domain.model.SortMode.SAVING ->
+                    filtered.sortedByDescending { s ->
+                        val p = s.priceOf(filters.fuel)
+                        if (p != null && zoneAverage != null) zoneAverage - p
+                        else Double.NEGATIVE_INFINITY
+                    }
             }
-
-            val prices = filtered.mapNotNull { it.priceOf(filters.fuel) }
-            val zoneAverage = if (prices.isNotEmpty()) prices.average() else null
 
             // Normaliza marcas (trim + Title Case) y muestra solo las que
             // aparezcan al menos 5 veces para no llenar el filtro de marcas

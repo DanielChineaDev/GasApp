@@ -14,6 +14,27 @@ interface StationDao {
     @Query("SELECT * FROM stations")
     fun observeAll(): Flow<List<StationEntity>>
 
+    /**
+     * Stations inside a geographic bounding box, capped to [limit] rows.
+     * Used by the map to load only what's near the user / visible region
+     * instead of the whole country (which exhausts memory and freezes the UI).
+     */
+    @Query(
+        """
+        SELECT * FROM stations
+        WHERE latitude BETWEEN :minLat AND :maxLat
+          AND longitude BETWEEN :minLng AND :maxLng
+        LIMIT :limit
+        """
+    )
+    fun observeInBounds(
+        minLat: Double,
+        maxLat: Double,
+        minLng: Double,
+        maxLng: Double,
+        limit: Int
+    ): Flow<List<StationEntity>>
+
     @Query("SELECT * FROM stations WHERE id = :id")
     suspend fun getById(id: String): StationEntity?
 

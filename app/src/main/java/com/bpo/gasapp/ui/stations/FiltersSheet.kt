@@ -12,7 +12,10 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -21,6 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.bpo.gasapp.domain.model.SortMode
 import com.bpo.gasapp.domain.model.StationFilters
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -30,7 +34,8 @@ fun FiltersSheet(
     availableBrands: List<String>,
     hasLocation: Boolean,
     onChange: (StationFilters) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    showDistance: Boolean = true
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(
@@ -42,43 +47,97 @@ fun FiltersSheet(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("Filtros", fontWeight = FontWeight.Bold)
-                TextButton(onClick = { onChange(StationFilters(fuel = filters.fuel)) }) {
+                Text("Filtros avanzados", fontWeight = FontWeight.Bold)
+                TextButton(onClick = {
+                    onChange(
+                        StationFilters(
+                            fuel = filters.fuel,
+                            maxDistanceKm = if (showDistance) StationFilters().maxDistanceKm else null
+                        )
+                    )
+                }) {
                     Text("Limpiar")
                 }
             }
 
+            // ── Ordenar por ──────────────────────────────────────────────────
+            Text("Ordenar por", fontWeight = FontWeight.SemiBold)
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                SortMode.entries.forEach { mode ->
+                    FilterChip(
+                        selected = filters.sortMode == mode,
+                        onClick = { onChange(filters.copy(sortMode = mode)) },
+                        label = { Text(mode.label) }
+                    )
+                }
+            }
+
+            HorizontalDivider()
+
+            // ── Precio máximo ────────────────────────────────────────────────
             Row(
                 Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Distancia", fontWeight = FontWeight.SemiBold)
-                val km = filters.maxDistanceKm
+                Text("Precio máximo", fontWeight = FontWeight.SemiBold)
                 Text(
-                    if (km == null) "Sin límite" else "$km km",
-                    style = androidx.compose.material3.MaterialTheme.typography.labelLarge,
-                    color = androidx.compose.material3.MaterialTheme.colorScheme.primary
+                    filters.maxPrice?.let { "%.2f €/L".format(it) } ?: "Sin límite",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
-            if (!hasLocation) {
-                Text(
-                    "Activa la ubicación para filtrar por distancia.",
-                    style = androidx.compose.material3.MaterialTheme.typography.bodySmall
-                )
-            }
-            androidx.compose.material3.Slider(
-                value = (filters.maxDistanceKm ?: StationFilters.DISTANCE_MAX_KM).toFloat(),
-                onValueChange = { onChange(filters.copy(maxDistanceKm = it.toInt())) },
-                valueRange = StationFilters.DISTANCE_MIN_KM.toFloat()..StationFilters.DISTANCE_MAX_KM.toFloat(),
-                steps = StationFilters.DISTANCE_MAX_KM - StationFilters.DISTANCE_MIN_KM - 1,
-                enabled = hasLocation
+            Slider(
+                value = (filters.maxPrice ?: StationFilters.PRICE_MAX).toFloat(),
+                onValueChange = {
+                    onChange(filters.copy(maxPrice = (Math.round(it * 100.0) / 100.0)))
+                },
+                valueRange = StationFilters.PRICE_MIN.toFloat()..StationFilters.PRICE_MAX.toFloat(),
+                steps = 29
             )
-            androidx.compose.material3.TextButton(
-                onClick = { onChange(filters.copy(maxDistanceKm = null)) },
-                enabled = hasLocation && filters.maxDistanceKm != null
-            ) { Text("Quitar límite de distancia") }
+            TextButton(
+                onClick = { onChange(filters.copy(maxPrice = null)) },
+                enabled = filters.maxPrice != null
+            ) { Text("Quitar límite de precio") }
 
+            // ── Distancia (solo donde aplica) ────────────────────────────────
+            if (showDistance) {
+                HorizontalDivider()
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Distancia", fontWeight = FontWeight.SemiBold)
+                    val km = filters.maxDistanceKm
+                    Text(
+                        if (km == null) "Sin límite" else "$km km",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+                if (!hasLocation) {
+                    Text(
+                        "Activa la ubicación para filtrar por distancia.",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+                Slider(
+                    value = (filters.maxDistanceKm ?: StationFilters.DISTANCE_MAX_KM).toFloat(),
+                    onValueChange = { onChange(filters.copy(maxDistanceKm = it.toInt())) },
+                    valueRange = StationFilters.DISTANCE_MIN_KM.toFloat()..StationFilters.DISTANCE_MAX_KM.toFloat(),
+                    steps = StationFilters.DISTANCE_MAX_KM - StationFilters.DISTANCE_MIN_KM - 1,
+                    enabled = hasLocation
+                )
+                TextButton(
+                    onClick = { onChange(filters.copy(maxDistanceKm = null)) },
+                    enabled = hasLocation && filters.maxDistanceKm != null
+                ) { Text("Quitar límite de distancia") }
+            }
+
+            HorizontalDivider()
+
+            // ── Conmutadores ─────────────────────────────────────────────────
             Row(
                 Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -90,8 +149,21 @@ fun FiltersSheet(
                     onCheckedChange = { onChange(filters.copy(openNowOnly = it)) }
                 )
             }
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Solo favoritas", fontWeight = FontWeight.SemiBold)
+                Switch(
+                    checked = filters.onlyFavorites,
+                    onCheckedChange = { onChange(filters.copy(onlyFavorites = it)) }
+                )
+            }
 
+            // ── Marca ────────────────────────────────────────────────────────
             if (availableBrands.isNotEmpty()) {
+                HorizontalDivider()
                 Text("Marca", fontWeight = FontWeight.SemiBold)
                 FlowRow(
                     modifier = Modifier.heightIn(max = 240.dp),

@@ -12,10 +12,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
@@ -37,12 +42,13 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bpo.gasapp.domain.model.FuelType
+import com.bpo.gasapp.ui.stations.FiltersSheet
+import com.bpo.gasapp.ui.theme.FavoriteRed
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
-import com.google.android.gms.maps.model.LatLngBounds
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapProperties
 import com.google.maps.android.compose.MapUiSettings
@@ -50,9 +56,11 @@ import com.google.maps.android.compose.MapsComposeExperimentalApi
 import com.google.maps.android.compose.clustering.Clustering
 import com.google.maps.android.compose.rememberCameraPositionState
 import kotlinx.coroutines.launch
+import kotlin.math.cos
 
 private val SPAIN_CENTER = LatLng(40.0, -3.7)
-private const val MIN_MARKER_ZOOM = 9f
+private const val MIN_MARKER_ZOOM = 11f
+private const val INITIAL_RADIUS_KM = 2.5
 
 @OptIn(
     ExperimentalPermissionsApi::class,
@@ -67,6 +75,7 @@ fun MapScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     var selectedStationId by remember { mutableStateOf<String?>(null) }
+    var showFilters by remember { mutableStateOf(false) }
     val context = androidx.compose.ui.platform.LocalContext.current
 
     val locationPermissions = rememberMultiplePermissionsState(
@@ -82,38 +91,44 @@ fun MapScreen(
         position = CameraPosition.fromLatLngZoom(SPAIN_CENTER, 5.5f)
     }
 
-    // Recenter on the user the first time we obtain their location.
+    // First time we obtain the user's location: recenter and seed an initial
+    // 2.5 km region so the map loads only nearby stations right away (before the
+    // map projection is even ready).
     LaunchedEffect(state.userLocation) {
-        state.userLocation?.let {
+        state.userLocation?.let { loc ->
+            seedRegion(viewModel, loc.latitude, loc.longitude, INITIAL_RADIUS_KM)
             cameraPositionState.animate(
-                CameraUpdateFactory.newLatLngZoom(LatLng(it.latitude, it.longitude), 13f)
+                CameraUpdateFactory.newLatLngZoom(LatLng(loc.latitude, loc.longitude), 14f)
             )
         }
     }
 
-    // Track the visible bounds and zoom only when the camera settles, to avoid
-    // rebuilding the marker list on every frame while panning.
-    var visibleBounds by remember { mutableStateOf<LatLngBounds?>(null) }
-    var zoom by remember { mutableFloatStateOf(cameraPositionState.position.zoom) }
-    // The map's projection is only available once the map has finished loading.
-    // We must wait for that before reading visible bounds; otherwise bounds stay
-    // null and the marker list would fall back to every station in Spain.
+    // Once the map is loaded, track the visible region and feed it to the
+    // ViewModel only when the camera settles. The ViewModel debounces and caps
+    // results, so panning never loads the whole country.
     var mapLoaded by remember { mutableStateOf(false) }
+    var zoom by remember { mutableFloatStateOf(cameraPositionState.position.zoom) }
     LaunchedEffect(cameraPositionState, mapLoaded) {
         if (!mapLoaded) return@LaunchedEffect
-        // Seed bounds/zoom as soon as the map is ready (also covers the case of
-        // re-entering the screen with a restored camera that is not moving).
-        zoom = cameraPositionState.position.zoom
-        visibleBounds = cameraPositionState.projection?.visibleRegion?.latLngBounds
         snapshotFlow { cameraPositionState.isMoving }.collect { moving ->
             if (!moving) {
                 zoom = cameraPositionState.position.zoom
-                visibleBounds = cameraPositionState.projection?.visibleRegion?.latLngBounds
+                val bounds = cameraPositionState.projection?.visibleRegion?.latLngBounds
+                if (zoom >= MIN_MARKER_ZOOM && bounds != null) {
+                    viewModel.setVisibleRegion(
+                        minLat = bounds.southwest.latitude,
+                        maxLat = bounds.northeast.latitude,
+                        minLng = bounds.southwest.longitude,
+                        maxLng = bounds.northeast.longitude
+                    )
+                } else if (zoom < MIN_MARKER_ZOOM) {
+                    viewModel.clearRegion()
+                }
             }
         }
     }
 
-    val clusterItems = rememberVisibleClusterItems(state, visibleBounds, zoom)
+    val clusterItems = rememberClusterItems(state.stations, state.filters.fuel)
 
     Box(Modifier.fillMaxSize()) {
         GoogleMap(
@@ -130,7 +145,9 @@ fun MapScreen(
                     true
                 },
                 clusterContent = { cluster -> ClusterBubble(cluster.size) },
-                clusterItemContent = { item -> PriceMarker(item.markerLabel, item.station.brand) }
+                clusterItemContent = { item ->
+                    PriceMarker(item.markerLabel, item.station.brand, item.station.isFavorite)
+                }
             )
         }
 
@@ -147,6 +164,7 @@ fun MapScreen(
             }
         }
 
+        // ── Barra superior: combustible + filtros avanzados + favoritas ──────
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
@@ -159,15 +177,31 @@ fun MapScreen(
                 modifier = Modifier
                     .horizontalScroll(rememberScrollState())
                     .padding(horizontal = 8.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                FuelType.entries.forEach { fuel ->
-                    FilterChip(
-                        selected = fuel == state.selectedFuel,
-                        onClick = { viewModel.selectFuel(fuel) },
-                        label = { Text(fuel.label) }
-                    )
-                }
+                FuelDropdownChip(selected = state.filters.fuel, onSelect = viewModel::selectFuel)
+                FilterChip(
+                    selected = state.filters.hasActiveConstraints,
+                    onClick = { showFilters = true },
+                    label = { Text("Filtros") },
+                    leadingIcon = {
+                        Icon(Icons.Default.FilterList, contentDescription = null, modifier = Modifier.size(16.dp))
+                    }
+                )
+                FilterChip(
+                    selected = state.filters.onlyFavorites,
+                    onClick = { viewModel.updateFilters(state.filters.copy(onlyFavorites = !state.filters.onlyFavorites)) },
+                    label = { Text("Favoritas") },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = if (state.filters.onlyFavorites) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = if (state.filters.onlyFavorites) FavoriteRed else androidx.compose.material3.LocalContentColor.current
+                        )
+                    }
+                )
             }
         }
 
@@ -196,7 +230,7 @@ fun MapScreen(
     if (selected != null) {
         StationSheet(
             station = selected,
-            fuel = state.selectedFuel,
+            fuel = state.filters.fuel,
             onDismiss = { selectedStationId = null },
             onDetail = {
                 val id = selected.id
@@ -208,6 +242,55 @@ fun MapScreen(
                 com.bpo.gasapp.ui.components.openNavigation(context, selected.latitude, selected.longitude)
             }
         )
+    }
+
+    if (showFilters) {
+        FiltersSheet(
+            filters = state.filters,
+            availableBrands = emptyList(),
+            hasLocation = hasPermission,
+            showDistance = false,
+            onChange = viewModel::updateFilters,
+            onDismiss = { showFilters = false }
+        )
+    }
+}
+
+private fun seedRegion(viewModel: MapViewModel, lat: Double, lng: Double, radiusKm: Double) {
+    val dLat = radiusKm / 111.32
+    val dLng = radiusKm / (111.32 * cos(Math.toRadians(lat)).coerceAtLeast(0.01))
+    viewModel.setVisibleRegion(
+        minLat = lat - dLat,
+        maxLat = lat + dLat,
+        minLng = lng - dLng,
+        maxLng = lng + dLng
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun FuelDropdownChip(selected: FuelType, onSelect: (FuelType) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        FilterChip(
+            selected = true,
+            onClick = { expanded = true },
+            label = { Text(selected.label) },
+            trailingIcon = {
+                Icon(Icons.Default.ExpandMore, contentDescription = null, modifier = Modifier.size(16.dp))
+            }
+        )
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            FuelType.entries.forEach { fuel ->
+                DropdownMenuItem(
+                    text = { Text(fuel.label) },
+                    onClick = { onSelect(fuel); expanded = false },
+                    leadingIcon = if (fuel == selected) {
+                        { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp)) }
+                    } else null
+                )
+            }
+        }
     }
 }
 
@@ -258,7 +341,9 @@ private fun StationSheet(
                     Icon(
                         imageVector = if (station.isFavorite) androidx.compose.material.icons.Icons.Default.Favorite
                         else androidx.compose.material.icons.Icons.Default.FavoriteBorder,
-                        contentDescription = "Favorito"
+                        contentDescription = "Favorito",
+                        tint = if (station.isFavorite) FavoriteRed
+                        else androidx.compose.material3.LocalContentColor.current
                     )
                 }
             }
@@ -284,7 +369,7 @@ private fun StationSheet(
 }
 
 @Composable
-private fun PriceMarker(label: String, brand: String) {
+private fun PriceMarker(label: String, brand: String, isFavorite: Boolean) {
     androidx.compose.foundation.layout.Row(
         modifier = androidx.compose.ui.Modifier
             .background(
@@ -317,6 +402,15 @@ private fun PriceMarker(label: String, brand: String) {
             style = androidx.compose.material3.MaterialTheme.typography.labelMedium,
             fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
         )
+        if (isFavorite) {
+            androidx.compose.foundation.layout.Spacer(androidx.compose.ui.Modifier.size(4.dp))
+            Icon(
+                imageVector = Icons.Default.Favorite,
+                contentDescription = "Favorita",
+                tint = FavoriteRed,
+                modifier = androidx.compose.ui.Modifier.size(14.dp)
+            )
+        }
     }
 }
 
@@ -340,25 +434,20 @@ private fun ClusterBubble(count: Int) {
     }
 }
 
+/**
+ * Builds cluster items from the already region-bounded, filtered station list.
+ * The list is capped upstream (MAX_MARKERS), so this is cheap.
+ */
 @Composable
-private fun rememberVisibleClusterItems(
-    state: MapUiState,
-    bounds: LatLngBounds?,
-    zoom: Float
+private fun rememberClusterItems(
+    stations: List<com.bpo.gasapp.domain.model.Station>,
+    fuel: FuelType
 ): List<StationClusterItem> =
-    androidx.compose.runtime.remember(state.stations, state.selectedFuel, bounds, zoom) {
-        // Render markers only when zoomed in AND the visible bounds are known.
-        // Without the bounds guard, re-entering the screen (camera restored at a
-        // high zoom but bounds momentarily null) would map every station in the
-        // country onto the map at once, freezing the UI thread (ANR + crash).
-        if (zoom < MIN_MARKER_ZOOM || bounds == null) return@remember emptyList()
-        state.stations.asSequence()
-            .filter { bounds.contains(LatLng(it.latitude, it.longitude)) }
-            .map { station ->
-                val price = station.priceOf(state.selectedFuel)
-                val label = price?.let { "%.3f".format(it) } ?: "—"
-                val snippet = price?.let { "${state.selectedFuel.label}: %.3f €".format(it) }
-                StationClusterItem(station, label, snippet)
-            }
-            .toList()
+    androidx.compose.runtime.remember(stations, fuel) {
+        stations.map { station ->
+            val price = station.priceOf(fuel)
+            val label = price?.let { "%.3f".format(it) } ?: "—"
+            val snippet = price?.let { "${fuel.label}: %.3f €".format(it) }
+            StationClusterItem(station, label, snippet)
+        }
     }

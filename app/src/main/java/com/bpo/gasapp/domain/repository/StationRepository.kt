@@ -10,6 +10,19 @@ interface StationRepository {
     /** All cached stations, with favorite flag merged in. */
     fun observeStations(): Flow<List<Station>>
 
+    /**
+     * Cached stations inside a geographic bounding box, capped to [limit],
+     * with favorite flag merged in. Powers the map's region-based loading so
+     * it never holds the whole country in memory at once.
+     */
+    fun observeStationsInBounds(
+        minLat: Double,
+        maxLat: Double,
+        minLng: Double,
+        maxLng: Double,
+        limit: Int
+    ): Flow<List<Station>>
+
     /** Only the user's favorite stations. */
     fun observeFavorites(): Flow<List<Station>>
 

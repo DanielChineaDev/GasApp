@@ -38,6 +38,21 @@ class StationRepositoryImpl @Inject constructor(
             stations.map { it.toDomain(isFavorite = it.id in favSet) }
         }.flowOn(Dispatchers.Default)
 
+    override fun observeStationsInBounds(
+        minLat: Double,
+        maxLat: Double,
+        minLng: Double,
+        maxLng: Double,
+        limit: Int
+    ): Flow<List<Station>> =
+        combine(
+            stationDao.observeInBounds(minLat, maxLat, minLng, maxLng, limit),
+            favoriteDao.observeIds()
+        ) { stations, favIds ->
+            val favSet = favIds.toHashSet()
+            stations.map { it.toDomain(isFavorite = it.id in favSet) }
+        }.flowOn(Dispatchers.Default)
+
     override fun observeFavorites(): Flow<List<Station>> =
         combine(stationDao.observeAll(), favoriteDao.observeIds()) { stations, favIds ->
             val favSet = favIds.toHashSet()
