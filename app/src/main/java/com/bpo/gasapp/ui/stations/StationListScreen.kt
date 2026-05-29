@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
@@ -55,6 +54,9 @@ import com.bpo.gasapp.domain.model.SortMode
 import com.bpo.gasapp.ui.components.StationCard
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
+
+// Cada N gasolineras insertamos un banner in-feed en la lista.
+private const val AD_INTERVAL = 8
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
@@ -131,19 +133,28 @@ fun StationListScreen(
                                 )
                             }
                         }
-                        itemsIndexed(
-                            items = state.stations,
-                            key = { _, station -> station.id }
-                        ) { index, station ->
-                            StationCard(
-                                station = station,
-                                fuel = state.filters.fuel,
-                                isCheapest = index == 0 && station.priceOf(state.filters.fuel) != null,
-                                zoneAverage = state.zoneAverage,
-                                onClick = { onStationClick(station.id) },
-                                onFavorite = { viewModel.toggleFavorite(station.id) },
-                                modifier = Modifier.animateItem()
-                            )
+                        // Lista con anuncios in-feed: insertamos un banner cada
+                        // AD_INTERVAL gasolineras para monetizar sin saturar.
+                        state.stations.forEachIndexed { index, station ->
+                            item(key = station.id) {
+                                StationCard(
+                                    station = station,
+                                    fuel = state.filters.fuel,
+                                    isCheapest = index == 0 && station.priceOf(state.filters.fuel) != null,
+                                    zoneAverage = state.zoneAverage,
+                                    onClick = { onStationClick(station.id) },
+                                    onFavorite = { viewModel.toggleFavorite(station.id) },
+                                    modifier = Modifier.animateItem()
+                                )
+                            }
+                            val pos = index + 1
+                            if (pos % AD_INTERVAL == 0 && index != state.stations.lastIndex) {
+                                item(key = "in-feed-ad-$pos") {
+                                    com.bpo.gasapp.ui.ads.BannerAd(
+                                        Modifier.padding(vertical = 4.dp)
+                                    )
+                                }
+                            }
                         }
                     }
                 }

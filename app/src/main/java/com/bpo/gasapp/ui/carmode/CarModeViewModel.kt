@@ -22,7 +22,8 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class CarModeUiState(
-    val cheapest: Station? = null,
+    /** Top-N gasolineras más baratas cerca, ordenadas por precio asc. */
+    val cheapestList: List<Station> = emptyList(),
     val fuel: FuelType = FuelType.GASOLINA_95,
     val hasLocation: Boolean = false
 )
@@ -44,15 +45,23 @@ class CarModeViewModel @Inject constructor(
 
     val uiState: StateFlow<CarModeUiState> =
         combine(repository.observeStations(), location, fuel) { stations, loc, f ->
-            val cheapest = if (loc == null) {
-                stations.minByOrNull { it.priceOf(f) ?: Double.MAX_VALUE }
+            val list: List<Station> = if (loc == null) {
+                stations
+                    .filter { it.priceOf(f) != null }
+                    .sortedBy { it.priceOf(f) }
+                    .take(MAX_CARD_COUNT)
             } else {
                 stations
-                    .mapNotNull { s -> s.priceOf(f)?.let { s.copy(distanceMeters = distanceMeters(loc, s.latitude, s.longitude)) } }
-                    .filter { (it.distanceMeters ?: Float.MAX_VALUE) <= 15_000f }
-                    .minByOrNull { it.priceOf(f) ?: Double.MAX_VALUE }
-            }?.takeIf { it.priceOf(f) != null }
-            CarModeUiState(cheapest = cheapest, fuel = f, hasLocation = loc != null)
+                    .mapNotNull { s ->
+                        s.priceOf(f)?.let {
+                            s.copy(distanceMeters = distanceMeters(loc, s.latitude, s.longitude))
+                        }
+                    }
+                    .filter { (it.distanceMeters ?: Float.MAX_VALUE) <= MAX_RADIUS_METERS }
+                    .sortedBy { it.priceOf(f) }
+                    .take(MAX_CARD_COUNT)
+            }
+            CarModeUiState(cheapestList = list, fuel = f, hasLocation = loc != null)
         }.flowOn(Dispatchers.Default).stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
@@ -61,5 +70,10 @@ class CarModeViewModel @Inject constructor(
 
     fun refreshLocation() {
         viewModelScope.launch { location.value = locationProvider.currentLocation() }
+    }
+
+    private companion object {
+        const val MAX_RADIUS_METERS = 15_000f
+        const val MAX_CARD_COUNT = 10
     }
 }
