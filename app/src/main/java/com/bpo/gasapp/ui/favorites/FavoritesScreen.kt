@@ -56,14 +56,6 @@ fun FavoritesScreen(
     val isLoggedIn by viewModel.isLoggedIn.collectAsStateWithLifecycle()
 
     Column(Modifier.fillMaxSize().statusBarsPadding()) {
-        AnimatedVisibility(
-            visible = !isLoggedIn,
-            enter = fadeIn() + expandVertically(),
-            exit = fadeOut() + shrinkVertically()
-        ) {
-            LoginBanner(onLogin = onLogin)
-        }
-
         FuelSelector(state.selectedFuel, viewModel::selectFuel)
 
         if (state.favorites.isNotEmpty()) {
@@ -73,6 +65,15 @@ fun FavoritesScreen(
             ) {
                 Text("Comparar depósito lleno")
             }
+        }
+
+        // Banner de inicio de sesión: debajo del botón "Comparar depósito lleno"
+        AnimatedVisibility(
+            visible = !isLoggedIn,
+            enter = fadeIn() + expandVertically(),
+            exit = fadeOut() + shrinkVertically()
+        ) {
+            LoginBanner(onLogin = onLogin)
         }
 
         if (state.favorites.isEmpty()) {

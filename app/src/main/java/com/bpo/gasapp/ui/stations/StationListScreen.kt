@@ -1,7 +1,6 @@
 package com.bpo.gasapp.ui.stations
 
 import android.Manifest
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -9,27 +8,37 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.LocationOff
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -42,9 +51,13 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bpo.gasapp.domain.model.FuelType
+import com.bpo.gasapp.domain.model.SortMode
 import com.bpo.gasapp.ui.components.StationCard
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
+
+// Opciones rápidas de distancia (null = sin límite)
+private val DISTANCE_OPTIONS: List<Int?> = listOf(1, 5, 10, 25, null)
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
@@ -65,79 +78,81 @@ fun StationListScreen(
     }
 
     Scaffold(
-        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets.statusBars,
-        topBar = {
-            TopAppBar(
-                title = { Text("Gasolina barata") },
-                actions = {
-                    IconButton(onClick = { showFilters = true }) {
-                        Icon(Icons.Default.FilterList, contentDescription = "Filtros")
-                    }
-                    IconButton(onClick = viewModel::refresh) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Actualizar")
-                    }
-                }
-            )
-        }
+        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets.statusBars
     ) { padding ->
         Column(modifier = Modifier.padding(padding).fillMaxSize()) {
-            SearchBar(query = state.searchQuery, onQueryChange = viewModel::setSearchQuery)
-            FuelSelector(state.filters.fuel, viewModel::selectFuel)
-            SortAndAverageBar(
+
+            // ── Cabecera compacta: buscador + botones ────────────────────────
+            CompactSearchRow(
+                query = state.searchQuery,
+                onQueryChange = viewModel::setSearchQuery,
+                onFilters = { showFilters = true },
+                onRefresh = viewModel::refresh
+            )
+
+            // ── Fila única de filtros compactos ──────────────────────────────
+            CompactFilterBar(
+                fuel = state.filters.fuel,
                 sortMode = state.filters.sortMode,
+                maxDistanceKm = state.filters.maxDistanceKm,
                 zoneAverage = state.zoneAverage,
-                onSortChange = viewModel::setSortMode
+                onFuelSelect = viewModel::selectFuel,
+                onSortSelect = viewModel::setSortMode,
+                onDistanceSelect = { km ->
+                    viewModel.updateFilters(state.filters.copy(maxDistanceKm = km))
+                }
             )
 
             androidx.compose.animation.AnimatedVisibility(visible = !state.hasLocation) {
                 LocationBanner(onEnable = { locationPermissions.launchMultiplePermissionRequest() })
             }
 
+            // ── Contenido principal ─────────────────────────────────────────
             androidx.compose.material3.pulltorefresh.PullToRefreshBox(
                 isRefreshing = state.isRefreshing,
                 onRefresh = viewModel::refresh,
                 modifier = Modifier.fillMaxSize()
             ) {
-            when {
-                state.isRefreshing && state.stations.isEmpty() -> CenteredLoader()
+                when {
+                    state.isRefreshing && state.stations.isEmpty() -> CenteredLoader()
 
-                state.stations.isEmpty() ->
-                    CenteredMessage(state.error ?: "No hay gasolineras con estos filtros.")
+                    state.stations.isEmpty() ->
+                        CenteredMessage(state.error ?: "No hay gasolineras con estos filtros.")
 
-                else -> LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    val cheapest = state.stations.minByOrNull {
-                        it.priceOf(state.filters.fuel) ?: Double.MAX_VALUE
-                    }?.takeIf { it.priceOf(state.filters.fuel) != null }
-                    if (cheapest != null) {
-                        item(key = "hero") {
-                            HeroCard(
-                                station = cheapest,
+                    else -> LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        val cheapest = state.stations.minByOrNull {
+                            it.priceOf(state.filters.fuel) ?: Double.MAX_VALUE
+                        }?.takeIf { it.priceOf(state.filters.fuel) != null }
+                        if (cheapest != null) {
+                            item(key = "hero") {
+                                HeroCard(
+                                    station = cheapest,
+                                    fuel = state.filters.fuel,
+                                    zoneAverage = state.zoneAverage,
+                                    onClick = { onStationClick(cheapest.id) }
+                                )
+                            }
+                        }
+                        itemsIndexed(
+                            items = state.stations,
+                            key = { _, station -> station.id }
+                        ) { index, station ->
+                            StationCard(
+                                station = station,
                                 fuel = state.filters.fuel,
+                                isCheapest = index == 0 && station.priceOf(state.filters.fuel) != null,
                                 zoneAverage = state.zoneAverage,
-                                onClick = { onStationClick(cheapest.id) }
+                                onClick = { onStationClick(station.id) },
+                                onFavorite = { viewModel.toggleFavorite(station.id) },
+                                modifier = Modifier.animateItem()
                             )
                         }
                     }
-                    itemsIndexed(
-                        items = state.stations,
-                        key = { _, station -> station.id }
-                    ) { index, station ->
-                        StationCard(
-                            station = station,
-                            fuel = state.filters.fuel,
-                            isCheapest = index == 0 && station.priceOf(state.filters.fuel) != null,
-                            zoneAverage = state.zoneAverage,
-                            onClick = { onStationClick(station.id) },
-                            onFavorite = { viewModel.toggleFavorite(station.id) },
-                            modifier = Modifier.animateItem()
-                        )
-                    }
                 }
-            }
             }
         }
     }
@@ -172,6 +187,168 @@ fun StationListScreen(
     }
 }
 
+// ─── Cabecera compacta ────────────────────────────────────────────────────────
+
+@Composable
+private fun CompactSearchRow(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    onFilters: () -> Unit,
+    onRefresh: () -> Unit
+) {
+    var text by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(query) }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 12.dp, end = 4.dp, top = 6.dp, bottom = 2.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        OutlinedTextField(
+            value = text,
+            onValueChange = { text = it; onQueryChange(it) },
+            modifier = Modifier.weight(1f).height(52.dp),
+            placeholder = { Text("Buscar marca, ciudad…", style = MaterialTheme.typography.bodyMedium) },
+            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(20.dp)) },
+            trailingIcon = {
+                if (text.isNotEmpty()) {
+                    IconButton(onClick = { text = ""; onQueryChange("") }, modifier = Modifier.size(36.dp)) {
+                        Icon(Icons.Default.Close, contentDescription = "Limpiar", modifier = Modifier.size(18.dp))
+                    }
+                }
+            },
+            singleLine = true,
+            shape = RoundedCornerShape(28.dp),
+            textStyle = MaterialTheme.typography.bodyMedium
+        )
+        IconButton(onClick = onFilters) {
+            Icon(Icons.Default.FilterList, contentDescription = "Filtros avanzados")
+        }
+        IconButton(onClick = onRefresh) {
+            Icon(Icons.Default.Refresh, contentDescription = "Actualizar")
+        }
+    }
+}
+
+// ─── Barra de filtros compacta con desplegables ───────────────────────────────
+
+@Composable
+private fun CompactFilterBar(
+    fuel: FuelType,
+    sortMode: SortMode,
+    maxDistanceKm: Int?,
+    zoneAverage: Double?,
+    onFuelSelect: (FuelType) -> Unit,
+    onSortSelect: (SortMode) -> Unit,
+    onDistanceSelect: (Int?) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .padding(horizontal = 12.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        FuelDropdownChip(selected = fuel, onSelect = onFuelSelect)
+        SortDropdownChip(selected = sortMode, onSelect = onSortSelect)
+        DistanceDropdownChip(selected = maxDistanceKm, onSelect = onDistanceSelect)
+
+        if (zoneAverage != null) {
+            VerticalDivider(modifier = Modifier.height(24.dp))
+            Text(
+                "Media %.3f €".format(zoneAverage),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun FuelDropdownChip(selected: FuelType, onSelect: (FuelType) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        FilterChip(
+            selected = true,
+            onClick = { expanded = true },
+            label = { Text(selected.label) },
+            trailingIcon = {
+                Icon(Icons.Default.ExpandMore, contentDescription = null, modifier = Modifier.size(16.dp))
+            }
+        )
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            FuelType.entries.forEach { fuel ->
+                DropdownMenuItem(
+                    text = { Text(fuel.label) },
+                    onClick = { onSelect(fuel); expanded = false },
+                    leadingIcon = if (fuel == selected) {
+                        { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp)) }
+                    } else null
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SortDropdownChip(selected: SortMode, onSelect: (SortMode) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        FilterChip(
+            selected = selected != SortMode.PRICE,
+            onClick = { expanded = true },
+            label = { Text(selected.label) },
+            trailingIcon = {
+                Icon(Icons.Default.ExpandMore, contentDescription = null, modifier = Modifier.size(16.dp))
+            }
+        )
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            SortMode.entries.forEach { mode ->
+                DropdownMenuItem(
+                    text = { Text(mode.label) },
+                    onClick = { onSelect(mode); expanded = false },
+                    leadingIcon = if (mode == selected) {
+                        { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp)) }
+                    } else null
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun DistanceDropdownChip(selected: Int?, onSelect: (Int?) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    val label = selected?.let { "$it km" } ?: "Sin límite"
+    Box {
+        FilterChip(
+            selected = selected != null,
+            onClick = { expanded = true },
+            label = { Text(label) },
+            leadingIcon = {
+                Icon(Icons.Default.LocationOn, contentDescription = null, modifier = Modifier.size(16.dp))
+            },
+            trailingIcon = {
+                Icon(Icons.Default.ExpandMore, contentDescription = null, modifier = Modifier.size(16.dp))
+            }
+        )
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            DISTANCE_OPTIONS.forEach { km ->
+                DropdownMenuItem(
+                    text = { Text(km?.let { "$it km" } ?: "Sin límite") },
+                    onClick = { onSelect(km); expanded = false },
+                    leadingIcon = if (km == selected) {
+                        { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp)) }
+                    } else null
+                )
+            }
+        }
+    }
+}
+
+// ─── Tarjeta "La más barata" ──────────────────────────────────────────────────
+
 @Composable
 private fun HeroCard(
     station: com.bpo.gasapp.domain.model.Station,
@@ -184,12 +361,12 @@ private fun HeroCard(
     androidx.compose.material3.Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
-        shape = androidx.compose.foundation.shape.RoundedCornerShape(22.dp),
+        shape = RoundedCornerShape(22.dp),
         colors = androidx.compose.material3.CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.primary
         )
     ) {
-        androidx.compose.foundation.layout.Column(
+        Column(
             Modifier.fillMaxWidth().padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
@@ -231,71 +408,13 @@ private fun HeroCard(
     }
 }
 
-@Composable
-private fun SortAndAverageBar(
-    sortMode: com.bpo.gasapp.domain.model.SortMode,
-    zoneAverage: Double?,
-    onSortChange: (com.bpo.gasapp.domain.model.SortMode) -> Unit
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 2.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        com.bpo.gasapp.domain.model.SortMode.entries.forEach { mode ->
-            FilterChip(
-                selected = sortMode == mode,
-                onClick = { onSortChange(mode) },
-                label = { Text(mode.label) }
-            )
-        }
-        if (zoneAverage != null) {
-            androidx.compose.foundation.layout.Spacer(Modifier.weight(1f))
-            Text(
-                "Media: %.3f €".format(zoneAverage),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
-
-@Composable
-private fun SearchBar(query: String, onQueryChange: (String) -> Unit) {
-    // El texto se mantiene en estado local para que la escritura/borrado sea
-    // instantáneo y no dependa del flujo asíncrono del ViewModel (que descartaba
-    // pulsaciones). Solo notificamos al ViewModel para filtrar.
-    var text by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(query) }
-    androidx.compose.material3.OutlinedTextField(
-        value = text,
-        onValueChange = {
-            text = it
-            onQueryChange(it)
-        },
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
-        placeholder = { Text("Buscar por marca, ciudad...") },
-        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-        trailingIcon = {
-            if (text.isNotEmpty()) {
-                IconButton(onClick = {
-                    text = ""
-                    onQueryChange("")
-                }) {
-                    Icon(Icons.Default.Close, contentDescription = "Limpiar")
-                }
-            }
-        },
-        singleLine = true,
-        shape = androidx.compose.foundation.shape.RoundedCornerShape(28.dp)
-    )
-}
+// ─── Aviso de ubicación ───────────────────────────────────────────────────────
 
 @Composable
 private fun LocationBanner(onEnable: () -> Unit) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 2.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
         AssistChip(
             onClick = onEnable,
@@ -305,25 +424,7 @@ private fun LocationBanner(onEnable: () -> Unit) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun FuelSelector(selected: FuelType, onSelect: (FuelType) -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .horizontalScroll(rememberScrollState())
-            .padding(horizontal = 12.dp, vertical = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        FuelType.entries.forEach { fuel ->
-            FilterChip(
-                selected = fuel == selected,
-                onClick = { onSelect(fuel) },
-                label = { Text(fuel.label) }
-            )
-        }
-    }
-}
+// ─── Estados de la lista ──────────────────────────────────────────────────────
 
 @Composable
 private fun CenteredLoader() {
