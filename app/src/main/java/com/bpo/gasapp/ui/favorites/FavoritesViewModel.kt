@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.bpo.gasapp.data.settings.SettingsRepository
 import com.bpo.gasapp.domain.model.FuelType
 import com.bpo.gasapp.domain.model.Station
+import com.bpo.gasapp.domain.repository.AuthRepository
 import com.bpo.gasapp.domain.repository.StationRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -14,6 +15,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -26,10 +28,20 @@ data class FavoritesUiState(
 @HiltViewModel
 class FavoritesViewModel @Inject constructor(
     private val repository: StationRepository,
-    private val settingsRepository: SettingsRepository
+    private val settingsRepository: SettingsRepository,
+    authRepository: AuthRepository
 ) : ViewModel() {
 
     private val selectedFuel = MutableStateFlow(FuelType.GASOLINA_95)
+
+    /** Whether the user is logged in (favorites are only synced when true). */
+    val isLoggedIn: StateFlow<Boolean> = authRepository.authState
+        .map { it != null }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = authRepository.currentUser() != null
+        )
 
     init {
         viewModelScope.launch { selectedFuel.value = settingsRepository.settings.first().defaultFuel }

@@ -137,7 +137,8 @@ fun GasNavHost(navController: NavHostController = rememberNavController()) {
             composable(Routes.FAVORITES) {
                 FavoritesScreen(
                     onStationClick = { id -> navController.navigate(StationDetailRoute.build(id)) },
-                    onCompareClick = { navController.navigate(Routes.COMPARATOR) }
+                    onCompareClick = { navController.navigate(Routes.COMPARATOR) },
+                    onLogin = { navController.navigate(Routes.ACCOUNT) }
                 )
             }
             composable(Routes.PROFILE) {

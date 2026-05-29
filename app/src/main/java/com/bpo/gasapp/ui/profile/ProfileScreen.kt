@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.DirectionsCarFilled
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Savings
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
@@ -30,6 +31,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -42,6 +44,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -49,6 +52,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bpo.gasapp.ui.account.AccountViewModel
+import com.bpo.gasapp.ui.components.LoginRequiredDialog
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -67,7 +71,10 @@ fun ProfileScreen(
     val favoritesCount by viewModel.favoritesCount.collectAsStateWithLifecycle()
     val moneySaved by viewModel.moneySaved.collectAsStateWithLifecycle()
     val context = androidx.compose.ui.platform.LocalContext.current
-    var showEditDialog by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    var showEditDialog by remember { mutableStateOf(false) }
+    var showLoginRequired by remember { mutableStateOf(false) }
+
+    val isLoggedIn = user != null
 
     Scaffold(
         contentWindowInsets = androidx.compose.foundation.layout.WindowInsets.statusBars,
@@ -81,7 +88,7 @@ fun ProfileScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            if (user != null) {
+            if (isLoggedIn) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -114,41 +121,35 @@ fun ProfileScreen(
                         )
                     }
                     androidx.compose.material3.IconButton(onClick = { showEditDialog = true }) {
-                        Icon(androidx.compose.material.icons.Icons.Default.Edit, contentDescription = "Editar nombre")
+                        Icon(Icons.Default.Edit, contentDescription = "Editar nombre")
                     }
-                }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    StatCard(
-                        value = "$favoritesCount",
-                        label = "Gasolineras favoritas",
-                        container = MaterialTheme.colorScheme.secondaryContainer,
-                        modifier = Modifier.weight(1f)
-                    )
-                    StatCard(
-                        value = "%.2f €".format(moneySaved),
-                        label = "Ahorrado con la app",
-                        container = MaterialTheme.colorScheme.tertiaryContainer,
-                        modifier = Modifier.weight(1f)
-                    )
                 }
             } else {
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
-                ) {
-                    Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("Sincroniza tus datos", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                        Text(
-                            "Inicia sesión para guardar tus favoritas y tu combustible en la nube.",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                        OutlinedButton(onClick = onLogin, modifier = Modifier.fillMaxWidth()) {
-                            Text("Iniciar sesión o registrarse")
-                        }
-                    }
-                }
+                SignInCard(onLogin = onLogin)
+            }
+
+            // Las estadísticas (favoritas y ahorro) requieren sesión: se mantienen
+            // visibles pero atenuadas y bloqueadas si el usuario no ha entrado.
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                StatCard(
+                    value = if (isLoggedIn) "$favoritesCount" else "—",
+                    label = "Gasolineras favoritas",
+                    container = MaterialTheme.colorScheme.secondaryContainer,
+                    locked = !isLoggedIn,
+                    onLockedClick = { showLoginRequired = true },
+                    modifier = Modifier.weight(1f)
+                )
+                StatCard(
+                    value = if (isLoggedIn) "%.2f €".format(moneySaved) else "—",
+                    label = "Ahorrado con la app",
+                    container = MaterialTheme.colorScheme.tertiaryContainer,
+                    locked = !isLoggedIn,
+                    onLockedClick = { showLoginRequired = true },
+                    modifier = Modifier.weight(1f)
+                )
             }
 
             SupportCard(
@@ -163,19 +164,22 @@ fun ProfileScreen(
 
             HorizontalDivider()
 
-            MenuRow(Icons.AutoMirrored.Filled.ListAlt, "Mis estadísticas", onStats)
-            if (user != null) {
-                MenuRow(Icons.Default.EmojiEvents, "Mis logros", onAchievements)
-            }
-            MenuRow(Icons.Default.DirectionsCarFilled, "Mis vehículos", onVehicles)
-            MenuRow(Icons.Default.Savings, "Modo ahorro", onSaving)
-            MenuRow(Icons.Default.DirectionsCar, "Modo coche", onCarMode)
-            MenuRow(Icons.Default.Star, "Quitar anuncios", onPremium)
-            MenuRow(Icons.Default.Settings, "Ajustes", onSettings)
+            MenuRow(Icons.AutoMirrored.Filled.ListAlt, "Mis estadísticas", onClick = onStats)
+            MenuRow(
+                icon = Icons.Default.EmojiEvents,
+                label = "Mis logros",
+                locked = !isLoggedIn,
+                onClick = { if (isLoggedIn) onAchievements() else showLoginRequired = true }
+            )
+            MenuRow(Icons.Default.DirectionsCarFilled, "Mis vehículos", onClick = onVehicles)
+            MenuRow(Icons.Default.Savings, "Modo ahorro", onClick = onSaving)
+            MenuRow(Icons.Default.DirectionsCar, "Modo coche", onClick = onCarMode)
+            MenuRow(Icons.Default.Star, "Quitar anuncios", onClick = onPremium)
+            MenuRow(Icons.Default.Settings, "Ajustes", onClick = onSettings)
 
             HorizontalDivider()
 
-            if (user != null) {
+            if (isLoggedIn) {
                 OutlinedButton(onClick = viewModel::logout, modifier = Modifier.fillMaxWidth()) {
                     Text("Cerrar sesión")
                 }
@@ -190,11 +194,40 @@ fun ProfileScreen(
             onDismiss = { showEditDialog = false }
         )
     }
+
+    if (showLoginRequired) {
+        LoginRequiredDialog(
+            onLogin = onLogin,
+            onDismiss = { showLoginRequired = false }
+        )
+    }
+}
+
+@Composable
+private fun SignInCard(onLogin: () -> Unit) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+    ) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                "Sincroniza tus datos",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                "Inicia sesión para guardar tus favoritas, tu ahorro y tus logros en la nube.",
+                style = MaterialTheme.typography.bodyMedium
+            )
+            androidx.compose.material3.Button(onClick = onLogin, modifier = Modifier.fillMaxWidth()) {
+                Text("Iniciar sesión o registrarse")
+            }
+        }
+    }
 }
 
 @Composable
 private fun EditNameDialog(current: String, onConfirm: (String) -> Unit, onDismiss: () -> Unit) {
-    var name by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(current) }
+    var name by remember { mutableStateOf(current) }
     androidx.compose.material3.AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Editar nombre") },
@@ -222,15 +255,35 @@ private fun StatCard(
     value: String,
     label: String,
     container: androidx.compose.ui.graphics.Color,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    locked: Boolean = false,
+    onLockedClick: () -> Unit = {}
 ) {
+    val cardModifier = if (locked) modifier.clickable(onClick = onLockedClick) else modifier
     Card(
-        modifier = modifier,
+        modifier = cardModifier,
         colors = CardDefaults.cardColors(containerColor = container)
     ) {
-        Column(Modifier.padding(16.dp)) {
-            Text(value, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-            Text(label, style = MaterialTheme.typography.labelMedium)
+        Box {
+            Column(
+                Modifier
+                    .padding(16.dp)
+                    .alpha(if (locked) 0.45f else 1f)
+            ) {
+                Text(value, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                Text(label, style = MaterialTheme.typography.labelMedium)
+            }
+            if (locked) {
+                Icon(
+                    Icons.Default.Lock,
+                    contentDescription = "Requiere iniciar sesión",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(10.dp)
+                        .size(18.dp)
+                )
+            }
         }
     }
 }
@@ -260,7 +313,7 @@ private fun SupportCard(onKofi: () -> Unit) {
                 )
             }
             Icon(
-                androidx.compose.material.icons.Icons.Default.Favorite,
+                Icons.Default.Favorite,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary
             )
@@ -269,12 +322,42 @@ private fun SupportCard(onKofi: () -> Unit) {
 }
 
 @Composable
-private fun MenuRow(icon: ImageVector, label: String, onClick: () -> Unit) {
+private fun MenuRow(
+    icon: ImageVector,
+    label: String,
+    onClick: () -> Unit,
+    locked: Boolean = false
+) {
     ListItem(
-        headlineContent = { Text(label) },
-        leadingContent = { Icon(icon, contentDescription = null) },
+        headlineContent = {
+            Text(
+                label,
+                color = if (locked) MaterialTheme.colorScheme.onSurfaceVariant
+                else MaterialTheme.colorScheme.onSurface
+            )
+        },
+        leadingContent = {
+            Icon(
+                icon,
+                contentDescription = null,
+                tint = if (locked) MaterialTheme.colorScheme.onSurfaceVariant
+                else MaterialTheme.colorScheme.onSurface
+            )
+        },
+        trailingContent = if (locked) {
+            {
+                Icon(
+                    Icons.Default.Lock,
+                    contentDescription = "Requiere iniciar sesión",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+        } else null,
+        colors = ListItemDefaults.colors(containerColor = androidx.compose.ui.graphics.Color.Transparent),
         modifier = Modifier
             .fillMaxWidth()
+            .alpha(if (locked) 0.6f else 1f)
             .clickable(onClick = onClick)
     )
 }
