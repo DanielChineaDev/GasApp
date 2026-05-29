@@ -95,7 +95,16 @@ fun MapScreen(
     // rebuilding the marker list on every frame while panning.
     var visibleBounds by remember { mutableStateOf<LatLngBounds?>(null) }
     var zoom by remember { mutableFloatStateOf(cameraPositionState.position.zoom) }
-    LaunchedEffect(cameraPositionState) {
+    // The map's projection is only available once the map has finished loading.
+    // We must wait for that before reading visible bounds; otherwise bounds stay
+    // null and the marker list would fall back to every station in Spain.
+    var mapLoaded by remember { mutableStateOf(false) }
+    LaunchedEffect(cameraPositionState, mapLoaded) {
+        if (!mapLoaded) return@LaunchedEffect
+        // Seed bounds/zoom as soon as the map is ready (also covers the case of
+        // re-entering the screen with a restored camera that is not moving).
+        zoom = cameraPositionState.position.zoom
+        visibleBounds = cameraPositionState.projection?.visibleRegion?.latLngBounds
         snapshotFlow { cameraPositionState.isMoving }.collect { moving ->
             if (!moving) {
                 zoom = cameraPositionState.position.zoom
@@ -111,7 +120,8 @@ fun MapScreen(
             modifier = Modifier.fillMaxSize(),
             cameraPositionState = cameraPositionState,
             properties = MapProperties(isMyLocationEnabled = hasPermission),
-            uiSettings = MapUiSettings(myLocationButtonEnabled = false, zoomControlsEnabled = false)
+            uiSettings = MapUiSettings(myLocationButtonEnabled = false, zoomControlsEnabled = false),
+            onMapLoaded = { mapLoaded = true }
         ) {
             Clustering(
                 items = clusterItems,
@@ -337,9 +347,13 @@ private fun rememberVisibleClusterItems(
     zoom: Float
 ): List<StationClusterItem> =
     androidx.compose.runtime.remember(state.stations, state.selectedFuel, bounds, zoom) {
-        if (zoom < MIN_MARKER_ZOOM) return@remember emptyList()
+        // Render markers only when zoomed in AND the visible bounds are known.
+        // Without the bounds guard, re-entering the screen (camera restored at a
+        // high zoom but bounds momentarily null) would map every station in the
+        // country onto the map at once, freezing the UI thread (ANR + crash).
+        if (zoom < MIN_MARKER_ZOOM || bounds == null) return@remember emptyList()
         state.stations.asSequence()
-            .filter { bounds == null || bounds.contains(LatLng(it.latitude, it.longitude)) }
+            .filter { bounds.contains(LatLng(it.latitude, it.longitude)) }
             .map { station ->
                 val price = station.priceOf(state.selectedFuel)
                 val label = price?.let { "%.3f".format(it) } ?: "—"
