@@ -75,6 +75,13 @@ private val brandDomains: Map<String, String> = mapOf(
     "TAMOIL" to "tamoil.com"
 )
 
+/**
+ * Referer enviado a Brandfetch. DEBE coincidir con un dominio autorizado en
+ * tu panel de Brandfetch (Logo Link → dominios/referrers permitidos), o el CDN
+ * devolverá su página de guidelines en vez del logo.
+ */
+private const val BRANDFETCH_REFERER = "https://gasapp.cloud"
+
 /** URL del logo en Brandfetch (vacía si no hay client id o dominio conocido). */
 private fun brandfetchUrl(brand: String, px: Int): String? {
     val clientId = com.bpo.gasapp.BuildConfig.BRANDFETCH_CLIENT_ID
@@ -119,8 +126,14 @@ fun BrandLogo(brand: String, size: Int = 44, modifier: Modifier = Modifier) {
             )
         }
         // 2) Logo de Brandfetch (cacheado por Coil); avatar mientras carga o si falla.
+        //    El Logo Link de Brandfetch exige un Referer de un dominio autorizado
+        //    en tu cuenta (protección anti-hotlinking); por eso se envía aquí.
         remoteUrl != null -> coil.compose.SubcomposeAsyncImage(
-            model = remoteUrl,
+            model = coil.request.ImageRequest.Builder(androidx.compose.ui.platform.LocalContext.current)
+                .data(remoteUrl)
+                .setHeader("Referer", BRANDFETCH_REFERER)
+                .crossfade(true)
+                .build(),
             contentDescription = brand,
             contentScale = ContentScale.Fit,
             loading = { BrandAvatar(brand = brand, size = size) },
