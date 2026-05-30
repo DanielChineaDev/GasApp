@@ -82,12 +82,15 @@ private val brandDomains: Map<String, String> = mapOf(
  */
 private const val BRANDFETCH_REFERER = "https://gasapp.cloud"
 
-/** URL del logo en Brandfetch (vacía si no hay client id o dominio conocido). */
-private fun brandfetchUrl(brand: String, px: Int): String? {
+/**
+ * URL del icono de marca en Brandfetch (icono cuadrado, ideal para la píldora).
+ * Vacía si no hay client id o dominio conocido.
+ */
+private fun brandfetchUrl(brand: String): String? {
     val clientId = com.bpo.gasapp.BuildConfig.BRANDFETCH_CLIENT_ID
     if (clientId.isBlank()) return null
     val domain = brandDomains[normalizeBrandKey(brand)] ?: return null
-    return "https://cdn.brandfetch.io/$domain/w/$px/h/$px?c=$clientId"
+    return "https://cdn.brandfetch.io/$domain/icon?c=$clientId"
 }
 
 /**
@@ -113,7 +116,7 @@ internal val brandLogoRes: Map<String, Int> = emptyMap()
 @Composable
 fun BrandLogo(brand: String, size: Int = 44, modifier: Modifier = Modifier) {
     val localRes = brandLogoRes[normalizeBrandKey(brand)]
-    val remoteUrl = remember(brand) { brandfetchUrl(brand, (size * 2)) }
+    val remoteUrl = remember(brand) { brandfetchUrl(brand) }
 
     when {
         // 1) Logo local (máxima prioridad, sin red).
@@ -155,15 +158,14 @@ fun BrandLogo(brand: String, size: Int = 44, modifier: Modifier = Modifier) {
     }
 }
 
-/** Contenedor blanco discreto para que el logo no domine sobre la UI de GasApp. */
+/** Marco cuadrado blanco; el logo ocupa todo el espacio (como las referencias). */
 @Composable
 private fun LogoFrame(size: Int, modifier: Modifier, content: @Composable () -> Unit) {
     Box(
         modifier = modifier
             .size(size.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .background(Color.White)
-            .padding((size * 0.14f).dp),
+            .clip(RoundedCornerShape(11.dp))
+            .background(Color.White),
         contentAlignment = Alignment.Center
     ) { content() }
 }

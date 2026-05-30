@@ -372,51 +372,45 @@ private fun StationSheet(
 
 @Composable
 private fun PriceMarker(name: String, label: String, isFavorite: Boolean) {
-    // Píldora compacta: nombre arriba (pequeño) y precio debajo (destacado).
-    androidx.compose.foundation.layout.Column(
+    // Píldora estilo referencia: logo cuadrado a la izquierda; a la derecha,
+    // nombre arriba y precio (destacado) debajo.
+    androidx.compose.foundation.layout.Row(
         modifier = androidx.compose.ui.Modifier
             .background(
                 color = androidx.compose.ui.graphics.Color.White,
                 shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp)
             )
-            .widthIn(max = 132.dp)
-            .padding(horizontal = 9.dp, vertical = 4.dp),
-        horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally
+            .padding(5.dp),
+        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
     ) {
-        androidx.compose.foundation.layout.Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-            androidx.compose.foundation.layout.Box(
-                modifier = androidx.compose.ui.Modifier
-                    .size(8.dp)
-                    .background(
-                        color = com.bpo.gasapp.ui.components.brandColor(name),
-                        shape = androidx.compose.foundation.shape.CircleShape
-                    )
-            )
-            androidx.compose.foundation.layout.Spacer(androidx.compose.ui.Modifier.size(4.dp))
+        com.bpo.gasapp.ui.components.BrandLogo(brand = name, size = 34)
+        androidx.compose.foundation.layout.Spacer(androidx.compose.ui.Modifier.size(7.dp))
+        androidx.compose.foundation.layout.Column {
             androidx.compose.material3.Text(
                 text = name,
-                color = androidx.compose.ui.graphics.Color(0xFF5A6A7A),
-                style = androidx.compose.material3.MaterialTheme.typography.labelSmall,
+                color = androidx.compose.ui.graphics.Color(0xFF2A2F36),
+                style = androidx.compose.material3.MaterialTheme.typography.labelMedium,
                 fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
                 maxLines = 1,
-                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                modifier = androidx.compose.ui.Modifier.widthIn(max = 116.dp)
             )
-        }
-        androidx.compose.foundation.layout.Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-            androidx.compose.material3.Text(
-                text = label,
-                color = androidx.compose.ui.graphics.Color.Black,
-                style = androidx.compose.material3.MaterialTheme.typography.titleSmall,
-                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
-            )
-            if (isFavorite) {
-                androidx.compose.foundation.layout.Spacer(androidx.compose.ui.Modifier.size(4.dp))
-                Icon(
-                    imageVector = Icons.Default.Favorite,
-                    contentDescription = "Favorita",
-                    tint = FavoriteRed,
-                    modifier = androidx.compose.ui.Modifier.size(13.dp)
+            androidx.compose.foundation.layout.Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                androidx.compose.material3.Text(
+                    text = "$label €",
+                    color = androidx.compose.ui.graphics.Color.Black,
+                    style = androidx.compose.material3.MaterialTheme.typography.titleSmall,
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
                 )
+                if (isFavorite) {
+                    androidx.compose.foundation.layout.Spacer(androidx.compose.ui.Modifier.size(4.dp))
+                    Icon(
+                        imageVector = Icons.Default.Favorite,
+                        contentDescription = "Favorita",
+                        tint = FavoriteRed,
+                        modifier = androidx.compose.ui.Modifier.size(12.dp)
+                    )
+                }
             }
         }
     }
