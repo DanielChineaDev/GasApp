@@ -117,13 +117,19 @@ private fun StationDetailContent(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         StationPhoto(station)
-        Column {
-            Text(station.brand, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-            if (station.address.isNotBlank()) Text(station.address, style = MaterialTheme.typography.bodyMedium)
-            val place = listOf(station.city, station.province).filter { it.isNotBlank() }.joinToString(", ")
-            if (place.isNotBlank()) Text(place, style = MaterialTheme.typography.bodyMedium)
-            if (station.schedule.isNotBlank()) {
-                Text("Horario: ${station.schedule}", style = MaterialTheme.typography.bodySmall)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            com.bpo.gasapp.ui.components.BrandLogo(brand = station.brand, size = 48)
+            Column(modifier = Modifier.weight(1f)) {
+                Text(station.brand, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                if (station.address.isNotBlank()) Text(station.address, style = MaterialTheme.typography.bodyMedium)
+                val place = listOf(station.city, station.province).filter { it.isNotBlank() }.joinToString(", ")
+                if (place.isNotBlank()) Text(place, style = MaterialTheme.typography.bodyMedium)
+                if (station.schedule.isNotBlank()) {
+                    Text("Horario: ${station.schedule}", style = MaterialTheme.typography.bodySmall)
+                }
             }
         }
 

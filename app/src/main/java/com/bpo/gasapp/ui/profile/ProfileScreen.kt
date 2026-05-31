@@ -140,18 +140,18 @@ fun ProfileScreen(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 StatCard(
-                    value = if (isLoggedIn) "$favoritesCount" else "—",
+                    target = if (isLoggedIn) favoritesCount.toFloat() else null,
+                    format = { it.toInt().toString() },
                     label = "Gasolineras favoritas",
                     container = MaterialTheme.colorScheme.secondaryContainer,
-                    locked = !isLoggedIn,
                     onLockedClick = { showLoginRequired = true },
                     modifier = Modifier.weight(1f)
                 )
                 StatCard(
-                    value = if (isLoggedIn) "%.2f €".format(moneySaved) else "—",
+                    target = if (isLoggedIn) moneySaved.toFloat() else null,
+                    format = { "%.2f €".format(it) },
                     label = "Ahorrado con la app",
                     container = MaterialTheme.colorScheme.tertiaryContainer,
-                    locked = !isLoggedIn,
                     onLockedClick = { showLoginRequired = true },
                     modifier = Modifier.weight(1f)
                 )
@@ -263,13 +263,29 @@ private const val KOFI_URL = "https://ko-fi.com/josedanielchinea"
 
 @Composable
 private fun StatCard(
-    value: String,
+    target: Float?,
+    format: (Float) -> String,
     label: String,
     container: androidx.compose.ui.graphics.Color,
     modifier: Modifier = Modifier,
-    locked: Boolean = false,
     onLockedClick: () -> Unit = {}
 ) {
+    val locked = target == null
+    // Conteo animado: el número sube de 0 al valor real al cargar / iniciar sesión.
+    val animated = remember { androidx.compose.animation.core.Animatable(0f) }
+    androidx.compose.runtime.LaunchedEffect(target) {
+        if (target != null) {
+            animated.animateTo(
+                target,
+                animationSpec = androidx.compose.animation.core.tween(
+                    durationMillis = 900,
+                    easing = androidx.compose.animation.core.FastOutSlowInEasing
+                )
+            )
+        }
+    }
+    val display = if (locked) "—" else format(animated.value)
+
     val cardModifier = if (locked) modifier.clickable(onClick = onLockedClick) else modifier
     Card(
         modifier = cardModifier,
@@ -281,7 +297,7 @@ private fun StatCard(
                     .padding(16.dp)
                     .alpha(if (locked) 0.45f else 1f)
             ) {
-                Text(value, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                Text(display, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                 Text(label, style = MaterialTheme.typography.labelMedium)
             }
             if (locked) {

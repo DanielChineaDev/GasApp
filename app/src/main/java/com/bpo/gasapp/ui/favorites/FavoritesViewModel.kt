@@ -44,7 +44,11 @@ class FavoritesViewModel @Inject constructor(
     private val searchQuery = MutableStateFlow("")
     private val location = MutableStateFlow<UserLocation?>(null)
     private val isRefreshing = MutableStateFlow(false)
+    private val isLocating = MutableStateFlow(false)
     private val error = MutableStateFlow<String?>(null)
+
+    private data class FavStatus(val refreshing: Boolean, val locating: Boolean, val error: String?)
+    private val statusFlow = combine(isRefreshing, isLocating, error) { r, l, e -> FavStatus(r, l, e) }
 
     /** Whether the user is logged in (favorites are only synced when true). */
     val isLoggedIn: StateFlow<Boolean> = authRepository.authState
@@ -80,9 +84,8 @@ class FavoritesViewModel @Inject constructor(
             repository.observeFavorites(),
             filtersAndSearch,
             location,
-            isRefreshing,
-            error
-        ) { favorites, (filters, query), userLocation, refreshing, err ->
+            statusFlow
+        ) { favorites, (filters, query), userLocation, status ->
             val withDistance = if (userLocation != null) {
                 favorites.map {
                     it.copy(distanceMeters = distanceMeters(userLocation, it.latitude, it.longitude))
@@ -140,8 +143,9 @@ class FavoritesViewModel @Inject constructor(
                 availableBrands = availableBrands,
                 zoneAverage = zoneAverage,
                 hasLocation = userLocation != null,
-                isRefreshing = refreshing,
-                error = err
+                isRefreshing = status.refreshing,
+                isLocating = status.locating,
+                error = status.error
             )
         }.flowOn(Dispatchers.Default).stateIn(
             scope = viewModelScope,
@@ -166,7 +170,11 @@ class FavoritesViewModel @Inject constructor(
     }
 
     fun refreshLocation() {
-        viewModelScope.launch { location.value = locationProvider.currentLocation() }
+        viewModelScope.launch {
+            isLocating.value = true
+            location.value = locationProvider.currentLocation()
+            isLocating.value = false
+        }
     }
 
     fun refresh() {

@@ -98,8 +98,11 @@ fun FavoritesScreen(
                 onSortSelect = viewModel::setSortMode
             )
 
-            AnimatedVisibility(visible = !state.hasLocation) {
-                LocationBanner(onEnable = { locationPermissions.launchMultiplePermissionRequest() })
+            AnimatedVisibility(visible = !state.hasLocation && !state.isLocating) {
+                LocationBanner(onEnable = {
+                    if (locationPermissions.allPermissionsGranted) viewModel.refreshLocation()
+                    else locationPermissions.launchMultiplePermissionRequest()
+                })
             }
             AnimatedVisibility(
                 visible = !isLoggedIn,
@@ -124,7 +127,7 @@ fun FavoritesScreen(
                 modifier = Modifier.fillMaxSize()
             ) {
                 when {
-                    state.isRefreshing && state.stations.isEmpty() ->
+                    (state.isRefreshing || state.isLocating) && state.stations.isEmpty() ->
                         com.bpo.gasapp.ui.components.StationListSkeleton(
                             Modifier.fillMaxSize(), showHero = false
                         )
